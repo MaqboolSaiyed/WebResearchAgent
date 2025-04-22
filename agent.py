@@ -4,6 +4,7 @@ from tools import WebSearchTool, WebScraperTool, ContentAnalyzerTool, NewsAggreg
 import google.generativeai as genai
 import re
 from dotenv import load_dotenv
+import gc  # Garbage collection
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -64,17 +65,23 @@ class WebResearchAgent:
                 "content_type": "facts",
                 "search_terms": [query]
             }
+        finally:
+            # Force garbage collection
+            gc.collect()
 
     def search_web(self, search_terms, is_news=False):
         """
         Searches the web using generated search terms
         """
         results = []
+        # Limit search terms to reduce memory usage
+        search_terms = search_terms[:3]  # Process max 3 search terms
+
         for term in search_terms:
             if is_news:
-                results.extend(self.news_aggregator.get_news(term))
+                results.extend(self.news_aggregator.get_news(term, max_results=3))  # Reduced from 5
             else:
-                results.extend(self.web_search.search(term))
+                results.extend(self.web_search.search(term, num_results=3))  # Reduced from 5
 
         # Remove duplicates based on URL
         unique_results = []
@@ -84,6 +91,12 @@ class WebResearchAgent:
                 unique_results.append(result)
                 urls.add(result["link"])
 
+                # Limit to max 5 results total to reduce memory usage
+                if len(unique_results) >= 5:
+                    break
+
+        # Force garbage collection
+        gc.collect()
         return unique_results
 
     def extract_content(self, search_results, query):
@@ -91,6 +104,8 @@ class WebResearchAgent:
         Extracts and analyzes content from search results
         """
         extracted_data = []
+        # Limit to max 3 results to process
+        search_results = search_results[:3]
 
         for result in search_results:
             url = result["link"]
@@ -107,8 +122,17 @@ class WebResearchAgent:
                         "relevance_score": analysis["relevance_score"]
                     })
 
+                # Clear variables to free memory
+                del scraped_data
+                del analysis
+                gc.collect()
+
         # Sort by relevance score
         extracted_data.sort(key=lambda x: x["relevance_score"], reverse=True)
+        # Limit to top 3 most relevant results
+        extracted_data = extracted_data[:3]
+
+        gc.collect()
         return extracted_data
 
     def synthesize_information(self, extracted_data, query):
@@ -118,8 +142,16 @@ class WebResearchAgent:
         try:
             # Prepare content for synthesis
             context = []
+            # Limit to top 3 sources
+            extracted_data = extracted_data[:3]
+
             for item in extracted_data:
-                context.append(f"Source: {item['title']} ({item['url']})\n{item['content']}\n")
+                # Limit content length for each source
+                content = item['content']
+                if len(content) > 2000:
+                    content = content[:2000] + "..."
+
+                context.append(f"Source: {item['title']} ({item['url']})\n{content}\n")
 
             context_text = "\n".join(context)
 
@@ -143,10 +175,19 @@ class WebResearchAgent:
             for i, item in enumerate(extracted_data):
                 sources += f"{i+1}. {item['title']} - {item['url']}\n"
 
+            # Clear variables to free memory
+            del context
+            del context_text
+            del prompt
+            gc.collect()
+
             return report + sources
         except Exception as e:
             print(f"Error synthesizing information: {e}")
             return "Failed to synthesize information due to an error."
+        finally:
+            # Force garbage collection
+            gc.collect()
 
     def research(self, query):
         """
@@ -164,15 +205,14 @@ class WebResearchAgent:
             elif not isinstance(analysis["search_terms"], list):
                 analysis["search_terms"] = [analysis["search_terms"]]  # Convert to list if it's a string
 
-            # Limit the number of search results to process
-            search_results = self.search_web(analysis["search_terms"])
-            search_results = search_results[:5]  # Process max 5 results
+            # Limit the number of search terms to process
+            search_terms = analysis["search_terms"][:3]  # Process max 3 search terms
+            search_results = self.search_web(search_terms)
 
             # Step 3: Search for news if needed
             if "content_type" in analysis and (analysis["content_type"] == "news" or "news" in analysis["content_type"]):
-                news_results = self.search_web(analysis["search_terms"], is_news=True)
-                news_results = news_results[:3]  # Limit news results too
-                search_results.extend(news_results)
+                news_results = self.search_web(search_terms, is_news=True)
+                search_results.extend(news_results[:2])  # Limit news results
 
             # Step 4: Extract and analyze content
             extracted_data = self.extract_content(search_results, query)
@@ -181,8 +221,10 @@ class WebResearchAgent:
             if extracted_data:
                 report = self.synthesize_information(extracted_data, query)
 
-                # Add explicit cleanup
-                import gc
+                # Clear variables to free memory
+                del analysis
+                del search_results
+                del extracted_data
                 gc.collect()
 
                 return report
@@ -191,17 +233,6 @@ class WebResearchAgent:
         except Exception as e:
             print(f"Error in research process: {e}")
             return f"An error occurred during the research process: {str(e)}"
-
-            # Limit the number of search results to process
-            search_results = search_results[:5]  # Process max 5 results
-            # Add explicit cleanup
-            import gc
+        finally:
+            # Force garbage collection at the end
             gc.collect()
-
-            return result
-        except Exception as e:
-                print(f"Error in research process: {e}")
-                return f"An error occurred during the research process: {str(e)}"
-
-                # Limit the number of search results to process
-                search_results = search_results[:5]  # Process max 5 results

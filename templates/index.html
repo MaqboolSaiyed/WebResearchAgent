@@ -4,69 +4,270 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Research Agent</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4cc9f0;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --light-gray: #e9ecef;
+            --dark-gray: #6c757d;
+            --success-color: #4CAF50;
+            --error-color: #f44336;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
-        h1 {
-            color: #333;
+
+        .header {
             text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
         }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
         .research-container {
             display: flex;
             flex-direction: column;
             gap: 20px;
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
         }
+
         .query-input {
             display: flex;
             gap: 10px;
+            position: relative;
         }
+
         input {
             flex: 1;
-            padding: 10px;
+            padding: 15px 20px;
             font-size: 16px;
+            border: 2px solid var(--light-gray);
+            border-radius: var(--border-radius);
+            transition: var(--transition);
         }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+        }
+
         button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
+            padding: 15px 25px;
+            background-color: var(--primary-color);
             color: white;
             border: none;
+            border-radius: var(--border-radius);
             cursor: pointer;
             font-size: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
         }
+
         button:hover {
-            background-color: #45a049;
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
         }
+
+        button:active {
+            transform: translateY(0);
+        }
+
         button:disabled {
-            background-color: #cccccc;
+            background-color: var(--dark-gray);
             cursor: not-allowed;
+            transform: none;
         }
-        .result {
-            border: 1px solid #ddd;
-            padding: 20px;
-            margin-top: 20px;
-            white-space: pre-wrap;
-        }
+
         .loading {
             text-align: center;
+            margin: 30px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .loading-text {
+            font-size: 18px;
+            color: var(--dark-gray);
+            font-weight: 500;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--light-gray);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            border: 1px solid var(--light-gray);
+            padding: 25px;
             margin-top: 20px;
+            border-radius: var(--border-radius);
+            background-color: white;
+            box-shadow: var(--box-shadow);
+            line-height: 1.8;
+            font-size: 16px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .result h2, .result h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .result p {
+            margin-bottom: 15px;
+        }
+
+        .result a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .result a:hover {
+            text-decoration: underline;
+        }
+
+        .examples {
+            margin-top: 30px;
+            background-color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .examples h3 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .example-queries {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .example-query {
+            background-color: var(--light-gray);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .example-query:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--dark-gray);
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .query-input {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Web Research Agent</h1>
+    <div class="header">
+        <h1>Web Research Agent</h1>
+        <p>Ask any research question and get comprehensive answers</p>
+    </div>
+
     <div class="research-container">
         <div class="query-input">
-            <input type="text" id="queryInput" placeholder="Enter your research query...">
-            <button id="researchButton">Research</button>
+            <input type="text" id="queryInput" placeholder="What would you like to research today?">
+            <button id="researchButton"><i class="fas fa-search"></i> Research</button>
         </div>
+
         <div id="loading" class="loading" style="display: none;">
-            Researching... (This may take a few minutes)
+            <div class="spinner"></div>
+            <div class="loading-text">Researching your query... (This may take a few minutes)</div>
         </div>
+
         <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="examples">
+        <h3>Try these example queries:</h3>
+        <div class="example-queries">
+            <div class="example-query">Latest advancements in AI</div>
+            <div class="example-query">Climate change impacts</div>
+            <div class="example-query">Space exploration news</div>
+            <div class="example-query">Renewable energy technologies</div>
+            <div class="example-query">Quantum computing explained</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2023 Web Research Agent | Powered by AI</p>
     </div>
 
     <script>
@@ -75,6 +276,14 @@
             if (e.key === 'Enter') {
                 performResearch();
             }
+        });
+
+        // Add click event listeners to example queries
+        document.querySelectorAll('.example-query').forEach(example => {
+            example.addEventListener('click', function() {
+                document.getElementById('queryInput').value = this.textContent;
+                performResearch();
+            });
         });
 
         function performResearch() {
@@ -89,8 +298,9 @@
             const researchButton = document.getElementById('researchButton');
 
             resultDiv.style.display = 'none';
-            loadingDiv.style.display = 'block';
+            loadingDiv.style.display = 'flex';
             researchButton.disabled = true;
+            researchButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Researching...';
 
             fetch('/research', {
                 method: 'POST',
@@ -99,19 +309,54 @@
                 },
                 body: JSON.stringify({ query: query }),
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 loadingDiv.style.display = 'none';
                 resultDiv.style.display = 'block';
-                resultDiv.innerHTML = data.result.replace(/\n/g, '<br>');
+
+                // Format the result with markdown-like styling
+                const formattedResult = formatResult(data.result);
+                resultDiv.innerHTML = formattedResult;
+
                 researchButton.disabled = false;
+                researchButton.innerHTML = '<i class="fas fa-search"></i> Research';
             })
             .catch(error => {
                 loadingDiv.style.display = 'none';
                 resultDiv.style.display = 'block';
-                resultDiv.innerHTML = 'Error: ' + error;
+                resultDiv.innerHTML = `<div style="color: var(--error-color);">Error: ${error.message}</div>`;
                 researchButton.disabled = false;
+                researchButton.innerHTML = '<i class="fas fa-search"></i> Research';
             });
+        }
+
+        function formatResult(text) {
+            // Replace line breaks with <br> tags
+            let formatted = text.replace(/\n/g, '<br>');
+
+            // Format headings (# Heading)
+            formatted = formatted.replace(/(?:<br>|^)# (.*?)(?:<br>|$)/g, '<h2>$1</h2>');
+            formatted = formatted.replace(/(?:<br>|^)## (.*?)(?:<br>|$)/g, '<h3>$1</h3>');
+
+            // Format bold text (**text**)
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // Format italic text (*text*)
+            formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // Format links
+            formatted = formatted.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+            // Format URLs as clickable links
+            const urlRegex = /(https?:\/\/[^\s<]+)/g;
+            formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank">$1</a>');
+
+            return formatted;
         }
     </script>
 </body>

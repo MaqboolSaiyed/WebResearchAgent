@@ -6,6 +6,7 @@ from serpapi import GoogleSearch
 from dotenv import load_dotenv
 import google.generativeai as genai
 import re
+import gc  # Import garbage collection
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -14,7 +15,7 @@ class WebSearchTool:
     def __init__(self):
         self.api_key = os.getenv("SERPAPI_KEY")
 
-    def search(self, query, num_results=5):
+    def search(self, query, num_results=3):  # Reduced from 5
         """
         Performs a web search using SerpAPI and returns search results
         """
@@ -37,6 +38,10 @@ class WebSearchTool:
                         "snippet": result.get("snippet", "")
                     })
 
+            # Clear variables to free memory
+            del results
+            gc.collect()
+
             return search_results
         except Exception as e:
             print(f"Error in web search: {e}")
@@ -58,6 +63,11 @@ class WebScraperTool:
 
             soup = BeautifulSoup(response.text, "html.parser")
 
+            # Clear response to free memory
+            response_text = response.text
+            del response
+            gc.collect()
+
             # Remove script and style elements
             for script in soup(["script", "style"]):
                 script.extract()
@@ -65,18 +75,35 @@ class WebScraperTool:
             # Get page text content
             text = soup.get_text()
 
+            # Clear soup to free memory
+            del soup
+            gc.collect()
+
             # Clean up text
             lines = (line.strip() for line in text.splitlines())
             chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
             text = '\n'.join(chunk for chunk in chunks if chunk)
 
-            # Extract title
-            title = soup.title.string if soup.title else "No title found"
+            # Extract title from original response
+            soup_title = BeautifulSoup(response_text, "html.parser").title
+            title = soup_title.string if soup_title else "No title found"
 
-            # In WebScraperTool.scrape
+            # Clear variables to free memory
+            del response_text
+            del soup_title
+            gc.collect()
+
+            # Further reduce content size
+            max_content_length = 15000  # Reduced from 25000
+            content = text[:max_content_length]
+
+            # Clear text to free memory
+            del text
+            gc.collect()
+
             return {
                 "title": title,
-                "content": text[:25000],  # Reduced from 50000
+                "content": content,
                 "url": url
             }
         except Exception as e:
@@ -99,13 +126,13 @@ class ContentAnalyzerTool:
         """
         try:
             # Truncate text if too long
-            # In ContentAnalyzerTool.analyze
-            max_length = 7500  # Reduced from 15000
+            max_length = 5000  # Reduced from 7500
             if len(text) > max_length:
                 text = text[:max_length]
 
             prompt = f"""Analyze the following text for information relevant to this query: '{query}'.
             Return a JSON object with two fields: 'relevance_score' (0-10 scale) and 'relevant_content' (extracted relevant information).
+            Keep the relevant_content concise, maximum 1000 words.
 
             Text to analyze: {text}"""
 
@@ -113,6 +140,12 @@ class ContentAnalyzerTool:
 
             # Process the response to extract JSON
             response_text = response.text
+
+            # Clear variables to free memory
+            del response
+            del text
+            del prompt
+            gc.collect()
 
             # Find JSON content between code blocks if present
             json_match = re.search(r'```(?:json)?\s*(.*?)```', response_text, re.DOTALL)
@@ -133,10 +166,26 @@ class ContentAnalyzerTool:
                     result["relevance_score"] = 5
                 if "relevant_content" not in result:
                     result["relevant_content"] = "No relevant content extracted"
+
+                # Limit the size of relevant_content
+                if len(result["relevant_content"]) > 2000:
+                    result["relevant_content"] = result["relevant_content"][:2000]
+
+                # Clear variables to free memory
+                del json_str
+                del response_text
+                gc.collect()
+
                 return result
             except json.JSONDecodeError:
                 # If we can't parse JSON, return a default response
-                return {"relevance_score": 5, "relevant_content": response_text[:1000]}
+                content = response_text[:800]  # Reduced from 1000
+
+                # Clear variables to free memory
+                del response_text
+                gc.collect()
+
+                return {"relevance_score": 5, "relevant_content": content}
 
         except Exception as e:
             print(f"Error in content analysis: {e}")
@@ -146,7 +195,7 @@ class NewsAggregatorTool:
     def __init__(self):
         self.api_key = os.getenv("SERPAPI_KEY")
 
-    def get_news(self, topic, max_results=5):
+    def get_news(self, topic, max_results=3):  # Reduced from 5
         """
         Gets recent news articles on a specific topic
         """
@@ -171,6 +220,10 @@ class NewsAggregatorTool:
                         "source": result.get("source", ""),
                         "date": result.get("date", "")
                     })
+
+            # Clear variables to free memory
+            del results
+            gc.collect()
 
             return news_results
         except Exception as e:
