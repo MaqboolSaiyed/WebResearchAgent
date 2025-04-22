@@ -90,7 +90,7 @@ class ContentAnalyzerTool:
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel('gemini-1.5-pro')
 
     def analyze(self, text, query):
         """
