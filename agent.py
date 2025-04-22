@@ -46,9 +46,11 @@ class WebResearchAgent:
             # Apply rate limiting
             self._rate_limit()
 
-            # Simplify prompt to reduce token usage
+            # Improved prompt to handle both complex and simple queries
             prompt = f"""Analyze this query: "{query}"
             Return JSON with: main_topic, key_aspects, content_type, search_terms.
+            For complex topics (like quantum computing), break down into specific subtopics.
+            For very short queries (like "advancement of AI"), expand with related concepts.
             Be very concise. Limit search_terms to 1-2 terms maximum.
             """
 
@@ -95,12 +97,15 @@ class WebResearchAgent:
             # Force garbage collection
             gc.collect()
 
-    def search_web(self, search_terms, is_news=False):
+    def search_web(self, search_terms, is_news=False, query=""):
         """
         Searches the web using generated search terms
         Optimized for low resource environment
         """
         results = []
+        # Get adjusted parameters based on query type
+        params = self._adjust_search_parameters(query)
+
         # Limit search terms using the configurable limit
         search_terms = search_terms[:self.max_search_terms]
 
@@ -109,9 +114,9 @@ class WebResearchAgent:
             time.sleep(1)
 
             if is_news:
-                term_results = self.news_aggregator.get_news(term, max_results=self.max_results_per_term)
+                term_results = self.news_aggregator.get_news(term, max_results=params.get("max_results_per_term", self.max_results_per_term))
             else:
-                term_results = self.web_search.search(term, num_results=self.max_results_per_term)
+                term_results = self.web_search.search(term, num_results=params.get("max_results_per_term", self.max_results_per_term))
 
             results.extend(term_results)
 
@@ -255,10 +260,10 @@ class WebResearchAgent:
             memory_info = process.memory_info()
             memory_usage_mb = memory_info.rss / (1024 * 1024)
             max_memory_mb = 400  # Set to 400MB to leave buffer in 512MB environment
-            
+
             if memory_usage_mb > max_memory_mb * 0.8:  # If using more than 80% of allowed memory
                 gc.collect()  # Force garbage collection
-                
+
             # Step 1: Analyze the query
             analysis = self.analyze_query(query)
             print(f"Query analysis: {analysis}")
@@ -302,3 +307,31 @@ class WebResearchAgent:
         finally:
             # Force garbage collection at the end
             gc.collect()
+
+    # Adjusted limits for better handling of complex topics
+    self.max_search_terms = 2  # Increased from 1
+    self.max_results_per_term = 2  # Increased from 1
+    self.max_total_results = 2  # Increased from 1
+    self.max_extracted_sources = 2  # Increased from 1
+    self.max_synthesis_content_length = 150  # Increased from 100
+
+    def _adjust_search_parameters(self, query):
+        """Dynamically adjust search parameters based on query complexity"""
+        word_count = len(query.split())
+
+        if word_count < 3:  # Very short query
+            return {
+                "max_results_per_term": 2,  # Get more results for short queries
+                "expand_query": True
+            }
+        elif word_count > 10 or any(complex_topic in query.lower() for complex_topic in
+                                  ["quantum", "physics", "philosophy", "theory"]):
+            return {
+                "max_results_per_term": 2,
+                "focus_search": True
+            }
+        else:
+            return {
+                "max_results_per_term": self.max_results_per_term,
+                "standard_search": True
+            }

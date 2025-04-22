@@ -32,14 +32,26 @@ class WebSearchTool:
 
             self.last_request_time = time.time()
 
+            # Improve search parameters for complex or simple queries
             params = {
                 "engine": "google",
                 "q": query,
                 "api_key": self.api_key,
                 "num": num_results,
                 "gl": "us",  # Search in US
-                "hl": "en"   # Language English
+                "hl": "en",  # Language English
+                "safe": "active"  # Safe search
             }
+
+            # For very short queries, try to get more diverse results
+            if len(query.split()) < 3:
+                params["tbs"] = "qdr:y"  # Last year results for more relevant content
+
+            # For complex topics, focus on educational content
+            if any(complex_topic in query.lower() for complex_topic in
+                  ["quantum", "physics", "philosophy", "theory"]):
+                params["as_sitesearch"] = ".edu"  # Focus on educational sites
+
             search = GoogleSearch(params)
             results = search.get_dict()
 
@@ -146,7 +158,7 @@ class ContentAnalyzerTool:
     def analyze(self, text, query):
         """
         Analyzes text content for relevance to the query
-        Enhanced with rate limiting
+        Enhanced with rate limiting and chunking for long content
         """
         try:
             # Rate limiting
@@ -157,72 +169,79 @@ class ContentAnalyzerTool:
 
             self.last_request_time = time.time()
 
-            # Truncate text if too long using the configurable limit
+            # Implement chunking for very long content
             if len(text) > self.max_analysis_length:
-                text = text[:self.max_analysis_length]
+                chunks = [text[i:i+self.max_analysis_length]
+                         for i in range(0, len(text), self.max_analysis_length)]
+                chunks = chunks[:2]  # Limit to first 2 chunks to save resources
 
-            prompt = f"""Analyze the following text for information relevant to this query: '{query}'.
-            Return a JSON object with three fields:
-            1. 'relevance_score' (0-10 scale)
-            2. 'relevant_content' (extracted relevant information)
-            3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
+                all_relevant_content = []
+                relevance_scores = []
 
-            Keep the relevant_content concise, maximum 800 words.
+                for chunk in chunks:
+                    # Process each chunk
+                    prompt = f"""Analyze the following text for information relevant to this query: '{query}'.
+                    Return a JSON object with three fields:
+                    1. 'relevance_score' (0-10 scale)
+                    2. 'relevant_content' (extracted relevant information)
+                    3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
 
-            Text to analyze: {text}"""
+                    Keep the relevant_content concise, maximum 800 words.
 
-            response = self.model.generate_content(prompt)
+                    Text to analyze: {text}"""
 
-            # Process the response to extract JSON
-            response_text = response.text
+                    response = self.model.generate_content(prompt)
 
-            # Clear variables to free memory
-            del response
-            del text
-            del prompt
-            gc.collect()
+                    # Process the response to extract JSON
+                    response_text = response.text
 
-            # Find JSON content between code blocks if present
-            json_match = re.search(r'```(?:json)?\s*(.*?)```', response_text, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-            else:
-                # Try to find anything that looks like JSON
-                json_str = re.search(r'(\{.*\})', response_text, re.DOTALL)
-                if json_str:
-                    json_str = json_str.group(1)
-                else:
-                    json_str = response_text
+                    # Clear variables to free memory
+                    del response
+                    del text
+                    del prompt
+                    gc.collect()
 
-            try:
-                result = json.loads(json_str)
-                # Ensure the result has the expected fields
-                if "relevance_score" not in result:
-                    result["relevance_score"] = 5
-                if "relevant_content" not in result:
-                    result["relevant_content"] = "No relevant content extracted"
-                if "source_quality" not in result:
-                    result["source_quality"] = 5
+                    # Find JSON content between code blocks if present
+                    json_match = re.search(r'```(?:json)?\s*(.*?)```', response_text, re.DOTALL)
+                    if json_match:
+                        json_str = json_match.group(1)
+                    else:
+                        # Try to find anything that looks like JSON
+                        json_str = re.search(r'(\{.*\})', response_text, re.DOTALL)
+                        if json_str:
+                            json_str = json_str.group(1)
+                        else:
+                            json_str = response_text
 
-                # Limit the size of relevant_content
-                if len(result["relevant_content"]) > 2000:
-                    result["relevant_content"] = result["relevant_content"][:2000]
+                    try:
+                        result = json.loads(json_str)
+                        # Ensure the result has the expected fields
+                        if "relevance_score" not in result:
+                            result["relevance_score"] = 5
+                        if "relevant_content" not in result:
+                            result["relevant_content"] = "No relevant content extracted"
+                        if "source_quality" not in result:
+                            result["source_quality"] = 5
 
-                # Clear variables to free memory
-                del json_str
-                del response_text
-                gc.collect()
+                        # Limit the size of relevant_content
+                        if len(result["relevant_content"]) > 2000:
+                            result["relevant_content"] = result["relevant_content"][:2000]
 
-                return result
-            except json.JSONDecodeError:
-                # If we can't parse JSON, return a default response
-                content = response_text[:800]
+                        # Clear variables to free memory
+                        del json_str
+                        del response_text
+                        gc.collect()
 
-                # Clear variables to free memory
-                del response_text
-                gc.collect()
+                        return result
+                    except json.JSONDecodeError:
+                        # If we can't parse JSON, return a default response
+                        content = response_text[:800]
 
-                return {"relevance_score": 5, "relevant_content": content, "source_quality": 5}
+                        # Clear variables to free memory
+                        del response_text
+                        gc.collect()
+
+                        return {"relevance_score": 5, "relevant_content": content, "source_quality": 5}
 
         except Exception as e:
             print(f"Error in content analysis: {e}")
