@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Research Agent</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .research-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .query-input {
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        .loading {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Web Research Agent</h1>
+    <div class="research-container">
+        <div class="query-input">
+            <input type="text" id="queryInput" placeholder="Enter your research query...">
+            <button id="researchButton">Research</button>
+        </div>
+        <div id="loading" class="loading" style="display: none;">
+            Researching... (This may take a few minutes)
+        </div>
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        document.getElementById('researchButton').addEventListener('click', performResearch);
+        document.getElementById('queryInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performResearch();
+            }
+        });
+
+        function performResearch() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                alert('Please enter a query');
+                return;
+            }
+
+            const resultDiv = document.getElementById('result');
+            const loadingDiv = document.getElementById('loading');
+            const researchButton = document.getElementById('researchButton');
+
+            resultDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+            researchButton.disabled = true;
+
+            fetch('/research', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: query }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingDiv.style.display = 'none';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = data.result.replace(/\n/g, '<br>');
+                researchButton.disabled = false;
+            })
+            .catch(error => {
+                loadingDiv.style.display = 'none';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = 'Error: ' + error;
+                researchButton.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
