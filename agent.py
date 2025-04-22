@@ -158,10 +158,16 @@ class WebResearchAgent:
             print(f"Query analysis: {analysis}")
 
             # Step 2: Search for general information
+            # Check if search_terms exists and is a list
+            if "search_terms" not in analysis or not analysis["search_terms"]:
+                analysis["search_terms"] = [query]  # Use the original query as fallback
+            elif not isinstance(analysis["search_terms"], list):
+                analysis["search_terms"] = [analysis["search_terms"]]  # Convert to list if it's a string
+
             search_results = self.search_web(analysis["search_terms"])
 
             # Step 3: Search for news if needed
-            if analysis["content_type"] == "news" or "news" in analysis["content_type"]:
+            if "content_type" in analysis and (analysis["content_type"] == "news" or "news" in analysis["content_type"]):
                 news_results = self.search_web(analysis["search_terms"], is_news=True)
                 search_results.extend(news_results)
 
