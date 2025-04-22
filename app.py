@@ -1,6 +1,22 @@
 from flask import Flask, request, render_template, jsonify
 from agent import WebResearchAgent
 import gc
+import os
+import psutil
+
+@app.before_request
+def check_memory():
+    process = psutil.Process(os.getpid())
+    memory_info = process.memory_info()
+    memory_mb = memory_info.rss / 1024 / 1024
+
+    # If using more than 400MB (leaving buffer), abort and recycle
+    if memory_mb > 400:
+        import gc
+        gc.collect()
+        # If still over limit, return error
+        if process.memory_info().rss / 1024 / 1024 > 400:
+            return jsonify({'error': 'Server is under high memory pressure. Please try again later.'}), 503
 
 app = Flask(__name__)
 research_agent = WebResearchAgent()

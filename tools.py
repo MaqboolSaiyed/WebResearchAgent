@@ -53,7 +53,7 @@ class WebScraperTool:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         # Add a configurable content limit
-        self.max_content_length = 8000  # Reduced from previous value
+        self.max_content_length = 5000  # Reduced from previous value
 
     def scrape(self, url):
         """
@@ -121,7 +121,7 @@ class ContentAnalyzerTool:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-1.5-pro')
         # Add a configurable content limit
-        self.max_analysis_length = 3000  # Reduced from previous value
+        self.max_analysis_length = 2000  # Reduced from previous value
 
     def analyze(self, text, query):
         """
