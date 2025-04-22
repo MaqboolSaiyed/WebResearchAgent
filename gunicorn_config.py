@@ -7,7 +7,7 @@ worker_class = "sync"
 worker_connections = 1000
 
 # Timeout settings - increase timeout for long-running research queries
-timeout = 300  # 5 minutes
+timeout = 900  # 15 minutes
 graceful_timeout = 30
 keepalive = 2
 
