@@ -5,7 +5,8 @@ import os
 import psutil
 
 app = Flask(__name__)
-research_agent = WebResearchAgent()
+# Don't initialize the agent here
+# research_agent = WebResearchAgent()
 
 @app.before_request
 def check_memory():
@@ -32,7 +33,11 @@ def perform_research():
         return jsonify({'error': 'Query is required'}), 400
 
     try:
+        # Create a new agent instance for each request
+        research_agent = WebResearchAgent()
         result = research_agent.research(query)
+        # Delete the agent after use
+        del research_agent
         # Force garbage collection after processing
         gc.collect()
         return jsonify({'result': result})

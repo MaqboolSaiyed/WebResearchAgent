@@ -18,10 +18,10 @@ class WebResearchAgent:
         self.model = genai.GenerativeModel('gemini-1.5-pro')
 
         # Add configurable limits
-        self.max_search_terms = 1
-        self.max_results_per_term = 2
-        self.max_total_results = 2
-        self.max_extracted_sources = 1
+        self.max_search_terms = 3
+        self.max_results_per_term = 3
+        self.max_total_results = 5
+        self.max_extracted_sources = 3
         self.max_synthesis_content_length = 500
 
     def analyze_query(self, query):
