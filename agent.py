@@ -14,7 +14,7 @@ class WebResearchAgent:
         self.web_scraper = WebScraperTool()
         self.content_analyzer = ContentAnalyzerTool()
         self.news_aggregator = NewsAggregatorTool()
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
 
     def analyze_query(self, query):
         """
