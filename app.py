@@ -4,6 +4,9 @@ import gc
 import os
 import psutil
 
+app = Flask(__name__)
+research_agent = WebResearchAgent()
+
 @app.before_request
 def check_memory():
     process = psutil.Process(os.getpid())
@@ -17,9 +20,6 @@ def check_memory():
         # If still over limit, return error
         if process.memory_info().rss / 1024 / 1024 > 400:
             return jsonify({'error': 'Server is under high memory pressure. Please try again later.'}), 503
-
-app = Flask(__name__)
-research_agent = WebResearchAgent()
 
 @app.route('/')
 def index():
