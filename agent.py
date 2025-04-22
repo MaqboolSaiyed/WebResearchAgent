@@ -6,6 +6,7 @@ import re
 from dotenv import load_dotenv
 import gc  # Garbage collection
 import time  # For rate limiting
+import psutil
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -188,6 +189,10 @@ class WebResearchAgent:
         Optimized for low resource environment
         """
         try:
+            # Check if there's any data to synthesize
+            if not extracted_data:
+                return "I couldn't find relevant information for your query. Please try with different search terms."
+
             # Apply rate limiting
             self._rate_limit()
 
@@ -245,6 +250,15 @@ class WebResearchAgent:
         Optimized for low resource environment
         """
         try:
+            # Monitor memory usage
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            memory_usage_mb = memory_info.rss / (1024 * 1024)
+            max_memory_mb = 400  # Set to 400MB to leave buffer in 512MB environment
+            
+            if memory_usage_mb > max_memory_mb * 0.8:  # If using more than 80% of allowed memory
+                gc.collect()  # Force garbage collection
+                
             # Step 1: Analyze the query
             analysis = self.analyze_query(query)
             print(f"Query analysis: {analysis}")

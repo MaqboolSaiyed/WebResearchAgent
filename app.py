@@ -42,12 +42,10 @@ def process_request(query, result_queue):
     except Exception as e:
         result_queue.put({"success": False, "error": str(e)})
     finally:
-        global active_workers
-        active_workers -= 1
         # Force garbage collection
         gc.collect()
         # Decrement active workers
-        active_workers -= 1
+        active_workers -= 1  # Only decrement once
 
 @app.route('/research', methods=['POST'])
 def perform_research():

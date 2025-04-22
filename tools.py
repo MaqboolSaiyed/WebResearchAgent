@@ -21,7 +21,7 @@ class WebSearchTool:
     def search(self, query, num_results=3):
         """
         Performs a web search using SerpAPI and returns search results
-        Enhanced with rate limiting
+        Enhanced with rate limiting and strict result limiting
         """
         try:
             # Rate limiting
@@ -56,6 +56,9 @@ class WebSearchTool:
             # Clear variables to free memory
             del results
             gc.collect()
+
+            # Strictly limit to exactly num_results (or fewer if not available)
+            search_results = search_results[:num_results]
 
             return search_results
         except Exception as e:
