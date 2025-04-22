@@ -4,6 +4,7 @@ import gc
 import os
 import threading
 import queue
+import psutil  # Already in your requirements.txt
 
 app = Flask(__name__)
 # Track active workers
@@ -25,13 +26,24 @@ def process_request(query, result_queue):
         if research_agent is None:
             research_agent = WebResearchAgent()
 
-        result = research_agent.research(query)
-        # Put result in queue
+        # Check memory usage before processing
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        memory_usage_mb = memory_info.rss / (1024 * 1024)
+        max_memory_mb = int(os.getenv('WORKER_MAX_MEMORY_MB', 256))
+
+        if memory_usage_mb > max_memory_mb * 0.8:  # If using more than 80% of allowed memory
+            gc.collect()  # Force garbage collection
+
+        # Continue with normal processing
+        agent = WebResearchAgent()
+        result = agent.research(query)
         result_queue.put({"success": True, "result": result})
     except Exception as e:
-        # Put error in queue
         result_queue.put({"success": False, "error": str(e)})
     finally:
+        global active_workers
+        active_workers -= 1
         # Force garbage collection
         gc.collect()
         # Decrement active workers

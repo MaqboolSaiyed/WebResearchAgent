@@ -18,16 +18,16 @@ class WebResearchAgent:
         self.news_aggregator = NewsAggregatorTool()
         self.model = genai.GenerativeModel('gemini-1.5-pro')
 
-        # Severely reduce limits for low resource environment (0.1 CPU, 512MB RAM)
-        self.max_search_terms = 1  # Reduced from 2
-        self.max_results_per_term = 1  # Reduced from 2
-        self.max_total_results = 2  # Reduced from 6
-        self.max_extracted_sources = 1  # Reduced from 2
-        self.max_synthesis_content_length = 150  # Reduced from 300
+        # Extremely reduced limits for very low resource environment
+        self.max_search_terms = 1  # Already at minimum
+        self.max_results_per_term = 1  # Already at minimum
+        self.max_total_results = 1  # Reduced from 2
+        self.max_extracted_sources = 1  # Already at minimum
+        self.max_synthesis_content_length = 100  # Reduced from 150
 
-        # Add rate limiting to prevent CPU spikes
+        # Increase rate limiting to prevent CPU spikes
         self.last_api_call = 0
-        self.min_api_interval = 2  # seconds between API calls
+        self.min_api_interval = 3  # Increased from 2
 
     def _rate_limit(self):
         """Apply rate limiting to prevent CPU spikes"""

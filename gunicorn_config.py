@@ -1,54 +1,41 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Server socket
-bind = "0.0.0.0:8000"
+bind = "0.0.0.0:8080"
+backlog = 64
 
-# Worker processes - absolute minimum for 512MB RAM
-workers = 1
-worker_class = "sync"
-worker_connections = 500  # Reduced from 1000
-
-# Timeout settings - increased to handle complex queries
-timeout = 600  # 10 minutes (increased from 5)
-graceful_timeout = 30  # Increased from 20
-keepalive = 2
-
-# Memory management - aggressive recycling for low memory
-max_requests = 3  # Recycle workers even more frequently
-max_requests_jitter = 2  # Small jitter to prevent all workers recycling at once
-
-# Logging - minimal logging to save memory
-accesslog = "-"
-errorlog = "-"
-loglevel = "warning"  # Only log warnings and errors
+# Worker processes
+workers = 2  # Reduce number of workers
+worker_class = 'sync'
+worker_connections = 100
+timeout = int(os.getenv('WORKER_TIMEOUT', 300))  # Increase timeout
+max_requests = int(os.getenv('WORKER_MAX_REQUESTS', 10))
+max_requests_jitter = 3
 
 # Process naming
-proc_name = "web_research_agent"
+proc_name = 'web_research_agent'
 
-# Limit worker memory usage - stricter limits
-limit_request_line = 2048
-limit_request_fields = 50
-limit_request_field_size = 4096
+# Server mechanics
+daemon = False
+pidfile = None
+umask = 0
+user = None
+group = None
+tmp_upload_dir = None
 
-# Pre-fork hooks for memory optimization
-def pre_fork(server, worker):
-    import gc
-    gc.collect()
+# Logging
+errorlog = '-'
+loglevel = 'info'
+accesslog = '-'
+access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
 
-# Post-fork hooks for memory optimization
-def post_fork(server, worker):
-    import gc
-    gc.collect()
+# Process management
+preload_app = True
 
-# Worker exit hook for cleanup
-def worker_exit(server, worker):
-    import gc
-    gc.collect()
-
-# Add worker timeout handler
-def worker_abort(worker):
-    import gc
-    gc.collect()
-
-# Add memory monitoring
-def on_starting(server):
-    import psutil
-    print(f"Available memory: {psutil.virtual_memory().available / (1024 * 1024):.2f} MB")
+# Memory management
+limit_request_line = 4096
+limit_request_fields = 100
+limit_request_field_size = 8190
