@@ -51,7 +51,8 @@ class TestWebResearchAgent(unittest.TestCase):
         results = self.agent.search_web(search_terms)
 
         # Check that search was called correctly
-        mock_search.assert_called_once_with("test query")
+        # Updated to include the num_results parameter
+        mock_search.assert_called_once_with("test query", num_results=3)
 
         # Check result structure
         self.assertEqual(len(results), 2)

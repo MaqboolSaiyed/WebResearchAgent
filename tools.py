@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 import re
 import gc  # Import garbage collection
+import time  # For rate limiting
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -14,17 +15,30 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 class WebSearchTool:
     def __init__(self):
         self.api_key = os.getenv("SERPAPI_KEY")
+        self.last_request_time = 0
+        self.min_request_interval = 1  # Minimum 1 second between requests
 
-    def search(self, query, num_results=3):  # Reduced from 5
+    def search(self, query, num_results=3):
         """
         Performs a web search using SerpAPI and returns search results
+        Enhanced with rate limiting
         """
         try:
+            # Rate limiting
+            current_time = time.time()
+            time_since_last_request = current_time - self.last_request_time
+            if time_since_last_request < self.min_request_interval:
+                time.sleep(self.min_request_interval - time_since_last_request)
+
+            self.last_request_time = time.time()
+
             params = {
                 "engine": "google",
                 "q": query,
                 "api_key": self.api_key,
-                "num": num_results
+                "num": num_results,
+                "gl": "us",  # Search in US
+                "hl": "en"   # Language English
             }
             search = GoogleSearch(params)
             results = search.get_dict()
@@ -35,7 +49,8 @@ class WebSearchTool:
                     search_results.append({
                         "title": result.get("title", ""),
                         "link": result.get("link", ""),
-                        "snippet": result.get("snippet", "")
+                        "snippet": result.get("snippet", ""),
+                        "source": "Google Search"
                     })
 
             # Clear variables to free memory
@@ -121,19 +136,34 @@ class ContentAnalyzerTool:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-1.5-pro')
         # Add a configurable content limit
-        self.max_analysis_length = 2000  # Reduced from previous value
+        self.max_analysis_length = 2000
+        self.last_request_time = 0
+        self.min_request_interval = 1  # Minimum 1 second between requests
 
     def analyze(self, text, query):
         """
         Analyzes text content for relevance to the query
+        Enhanced with rate limiting
         """
         try:
+            # Rate limiting
+            current_time = time.time()
+            time_since_last_request = current_time - self.last_request_time
+            if time_since_last_request < self.min_request_interval:
+                time.sleep(self.min_request_interval - time_since_last_request)
+
+            self.last_request_time = time.time()
+
             # Truncate text if too long using the configurable limit
             if len(text) > self.max_analysis_length:
                 text = text[:self.max_analysis_length]
 
             prompt = f"""Analyze the following text for information relevant to this query: '{query}'.
-            Return a JSON object with two fields: 'relevance_score' (0-10 scale) and 'relevant_content' (extracted relevant information).
+            Return a JSON object with three fields:
+            1. 'relevance_score' (0-10 scale)
+            2. 'relevant_content' (extracted relevant information)
+            3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
+
             Keep the relevant_content concise, maximum 800 words.
 
             Text to analyze: {text}"""
@@ -168,6 +198,8 @@ class ContentAnalyzerTool:
                     result["relevance_score"] = 5
                 if "relevant_content" not in result:
                     result["relevant_content"] = "No relevant content extracted"
+                if "source_quality" not in result:
+                    result["source_quality"] = 5
 
                 # Limit the size of relevant_content
                 if len(result["relevant_content"]) > 2000:
@@ -181,21 +213,67 @@ class ContentAnalyzerTool:
                 return result
             except json.JSONDecodeError:
                 # If we can't parse JSON, return a default response
-                content = response_text[:800]  # Reduced from 1000
+                content = response_text[:800]
 
                 # Clear variables to free memory
                 del response_text
                 gc.collect()
 
-                return {"relevance_score": 5, "relevant_content": content}
+                return {"relevance_score": 5, "relevant_content": content, "source_quality": 5}
 
         except Exception as e:
             print(f"Error in content analysis: {e}")
-            return {"relevance_score": 0, "relevant_content": ""}
+            return {"relevance_score": 0, "relevant_content": "", "source_quality": 0}
 
 class NewsAggregatorTool:
     def __init__(self):
         self.api_key = os.getenv("SERPAPI_KEY")
+        self.last_request_time = 0
+        self.min_request_interval = 1  # Minimum 1 second between requests
+
+    def get_news(self, query, max_results=3):
+        """
+        Retrieves news articles related to the query
+        """
+        try:
+            # Rate limiting
+            current_time = time.time()
+            time_since_last_request = current_time - self.last_request_time
+            if time_since_last_request < self.min_request_interval:
+                time.sleep(self.min_request_interval - time_since_last_request)
+
+            self.last_request_time = time.time()
+
+            params = {
+                "engine": "google",
+                "q": query,
+                "api_key": self.api_key,
+                "num": max_results,
+                "tbm": "nws",  # News search
+                "gl": "us",    # Search in US
+                "hl": "en"     # Language English
+            }
+            search = GoogleSearch(params)
+            results = search.get_dict()
+
+            news_results = []
+            if "news_results" in results:
+                for result in results["news_results"][:max_results]:
+                    news_results.append({
+                        "title": result.get("title", ""),
+                        "link": result.get("link", ""),
+                        "snippet": result.get("snippet", ""),
+                        "source": result.get("source", "News Source")
+                    })
+
+            # Clear variables to free memory
+            del results
+            gc.collect()
+
+            return news_results
+        except Exception as e:
+            print(f"Error in news search: {e}")
+            return []
 
     def get_news(self, topic, max_results=3):  # Reduced from 5
         """

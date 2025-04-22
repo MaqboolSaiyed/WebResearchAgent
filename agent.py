@@ -17,11 +17,11 @@ class WebResearchAgent:
         self.news_aggregator = NewsAggregatorTool()
         self.model = genai.GenerativeModel('gemini-1.5-pro')
 
-        # Add configurable limits
-        self.max_search_terms = 2
-        self.max_results_per_term = 2
-        self.max_total_results = 2
-        self.max_extracted_sources = 2
+        # Increase configurable limits to support multiple websites
+        self.max_search_terms = 3
+        self.max_results_per_term = 3  # Increased to get more diverse sources
+        self.max_total_results = 9  # Increased to handle more results
+        self.max_extracted_sources = 3
         self.max_synthesis_content_length = 500
 
     def analyze_query(self, query):
@@ -79,6 +79,7 @@ class WebResearchAgent:
     def search_web(self, search_terms, is_news=False):
         """
         Searches the web using generated search terms
+        Enhanced to support multiple websites
         """
         results = []
         # Limit search terms using the configurable limit
@@ -93,14 +94,36 @@ class WebResearchAgent:
         # Remove duplicates based on URL
         unique_results = []
         urls = set()
-        for result in results:
-            if result["link"] not in urls:
-                unique_results.append(result)
-                urls.add(result["link"])
+        domains = set()  # Track unique domains to ensure diversity
 
-                # Limit to configurable max total results
-                if len(unique_results) >= self.max_total_results:
-                    break
+        # First pass: organize by domain
+        domain_results = {}
+        for result in results:
+            url = result["link"]
+            # Extract domain from URL
+            domain = url.split("//")[-1].split("/")[0]
+
+            if domain not in domain_results:
+                domain_results[domain] = []
+
+            domain_results[domain].append(result)
+
+        # Second pass: take top results from each domain to ensure diversity
+        for domain, domain_specific_results in domain_results.items():
+            # Take up to 3 results from each domain
+            for result in domain_specific_results[:3]:
+                if result["link"] not in urls:
+                    unique_results.append(result)
+                    urls.add(result["link"])
+                    domains.add(domain)
+
+                    # Break if we've reached our limit
+                    if len(unique_results) >= self.max_total_results:
+                        break
+
+            # Break if we've reached our limit
+            if len(unique_results) >= self.max_total_results:
+                break
 
         # Force garbage collection
         gc.collect()
@@ -201,6 +224,7 @@ class WebResearchAgent:
     def research(self, query):
         """
         Main method to perform web research based on user query
+        Enhanced to support multiple websites and better memory management
         """
         try:
             # Step 1: Analyze the query
@@ -214,20 +238,45 @@ class WebResearchAgent:
             elif not isinstance(analysis["search_terms"], list):
                 analysis["search_terms"] = [analysis["search_terms"]]  # Convert to list if it's a string
 
-            # Limit the number of search terms to process
-            search_terms = analysis["search_terms"][:2]  # Process max 2 search terms
+            # Process all search terms to get diverse sources
+            search_terms = analysis["search_terms"][:self.max_search_terms]
             search_results = self.search_web(search_terms)
 
             # Step 3: Search for news if needed
             if "content_type" in analysis and (analysis["content_type"] == "news" or "news" in analysis["content_type"]):
                 news_results = self.search_web(search_terms, is_news=True)
-                search_results.extend(news_results[:1])  # Limit news results
+                search_results.extend(news_results[:3])  # Include more news results
 
             # Step 4: Extract and analyze content
             extracted_data = self.extract_content(search_results, query)
 
             # Step 5: Synthesize information
             if extracted_data:
+                # Count unique domains to ensure we have at least 3 sources
+                domains = set()
+                for item in extracted_data:
+                    url = item["url"]
+                    domain = url.split("//")[-1].split("/")[0]
+                    domains.add(domain)
+
+                # If we don't have enough diverse sources, try to get more
+                if len(domains) < 3 and len(search_terms) > 1:
+                    # Try additional search with different terms
+                    additional_results = self.search_web(search_terms[1:])
+                    additional_data = self.extract_content(additional_results, query)
+
+                    # Add new sources that have different domains
+                    for item in additional_data:
+                        url = item["url"]
+                        domain = url.split("//")[-1].split("/")[0]
+
+                        if domain not in domains:
+                            extracted_data.append(item)
+                            domains.add(domain)
+
+                            if len(domains) >= 3:
+                                break
+
                 report = self.synthesize_information(extracted_data, query)
 
                 # Clear variables to free memory

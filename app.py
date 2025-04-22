@@ -2,49 +2,76 @@ from flask import Flask, request, render_template, jsonify
 from agent import WebResearchAgent
 import gc
 import os
-import psutil
+import threading
+import queue
 
 app = Flask(__name__)
-# Don't initialize the agent here
-# research_agent = WebResearchAgent()
+# Track active workers
+active_workers = 0
+max_workers = 3  # Maximum concurrent workers
 
-@app.before_request
-def check_memory():
-    process = psutil.Process(os.getpid())
-    memory_info = process.memory_info()
-    memory_mb = memory_info.rss / 1024 / 1024
-
-    # If using more than 400MB (leaving buffer), abort and recycle
-    if memory_mb > 400:
-        import gc
-        gc.collect()
-        # If still over limit, return error
-        if process.memory_info().rss / 1024 / 1024 > 400:
-            return jsonify({'error': 'Server is under high memory pressure. Please try again later.'}), 503
+# Create a global agent instance that can be reused
+research_agent = None
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+def process_request(query, result_queue):
+    """Worker function to process research requests"""
+    global active_workers, research_agent
+    try:
+        # Create the agent if it doesn't exist
+        if research_agent is None:
+            research_agent = WebResearchAgent()
+
+        result = research_agent.research(query)
+        # Put result in queue
+        result_queue.put({"success": True, "result": result})
+    except Exception as e:
+        # Put error in queue
+        result_queue.put({"success": False, "error": str(e)})
+    finally:
+        # Force garbage collection
+        gc.collect()
+        # Decrement active workers
+        active_workers -= 1
+
 @app.route('/research', methods=['POST'])
 def perform_research():
+    global active_workers
+
     query = request.json.get('query', '')
     if not query:
         return jsonify({'error': 'Query is required'}), 400
 
+    # Check if we can handle more requests
+    if active_workers >= max_workers:
+        return jsonify({'error': 'Server is currently processing too many requests. Please try again later.'}), 429
+
+    # Create a result queue for this request
+    result_queue = queue.Queue()
+
+    # Increment active workers
+    active_workers += 1
+
+    # Start worker thread
+    worker = threading.Thread(target=process_request, args=(query, result_queue))
+    worker.daemon = True
+    worker.start()
+
+    # Wait for result with timeout
     try:
-        # Create a new agent instance for each request
-        research_agent = WebResearchAgent()
-        result = research_agent.research(query)
-        # Delete the agent after use
-        del research_agent
-        # Force garbage collection after processing
-        gc.collect()
-        return jsonify({'result': result})
-    except Exception as e:
-        # Force garbage collection on error
-        gc.collect()
-        return jsonify({'error': str(e)}), 500
+        result = result_queue.get(timeout=60)  # 60 second timeout
+        if result["success"]:
+            return jsonify({'result': result["result"]})
+        else:
+            return jsonify({'error': result["error"]}), 500
+    except queue.Empty:
+        # Timeout occurred
+        active_workers -= 1  # Decrement since we're abandoning this request
+        return jsonify({'error': 'Request timed out. Please try again with a simpler query.'}), 504
 
 if __name__ == '__main__':
-    app.run(debug=False)  # Set debug to False in production
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port, debug=False)  # Set debug to False in production

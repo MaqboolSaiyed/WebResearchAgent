@@ -1,112 +1,80 @@
-# Web Research Agent
+# **🔍 Web Research Agent**
 
-A powerful AI-powered tool that can search the web, extract relevant information, and compile comprehensive research reports based on user queries.
+A powerful web research assistant that automates online research tasks using AI.
 
-## Features
+## **✨ Features**
 
-- Analyzes user queries to understand intent and determine search strategy
-- Searches the web for relevant information
-- Extracts and analyzes content from websites
-- Aggregates news articles on specific topics
-- Synthesizes information from multiple sources
-- Generates comprehensive research reports
+* **Automated Web Search:** 🌐 Search across multiple sources, hands-free\!  
+* **Content Extraction & Analysis:** 🧠 Extracts and analyzes content for maximum relevance.  
+* **Information Synthesis:** 📝 Compiles findings into comprehensive reports.  
+* **News Aggregation:** 📰 Gathers the latest news on your chosen topics.
 
-## Architecture
+## **🛠️ Technical Implementation**
 
-The Web Research Agent is composed of several key components:
+* **Backend:** Python with Flask 🐍  
+* **AI Models:** Google Gemini 1.5 Pro 🤖  
+* **Web Scraping:** BeautifulSoup4 🍜  
+* **Search API:** SerpAPI 🔍  
+* **Frontend:** HTML, CSS, JavaScript 🎨
 
-1. **Query Analyzer:** Interprets user queries and breaks them into searchable components
-2. **Search Coordinator:** Manages web searches using appropriate search terms
-3. **Content Extractor:** Scrapes relevant information from web pages
-4. **Information Synthesizer:** Combines information from multiple sources and generates a final report
-5. **Error Handler:** Manages errors throughout the process
-
-## Tool Integration
+## **🔗 Tool Integration**
 
 The agent integrates with the following tools:
 
-1. **Web Search Tool:** Uses SerpAPI to search the web and retrieve relevant search results
-2. **Web Scraper:** Extracts text and data from websites using BeautifulSoup
-3. **Content Analyzer:** Analyzes content relevance using OpenAI's GPT-4
-4. **News Aggregator:** Finds recent news articles on specific topics
+1. **Web Search Tool:** Uses SerpAPI to scour the web and deliver relevant search results.  
+2. **Web Scraper:** Employs BeautifulSoup to extract text and data from websites.  
+3. **Content Analyzer:** Leverages Google's Gemini model to analyze content relevance.  
+4. **News Aggregator:** Finds recent news articles on specific topics.
 
-## Technical Implementation
+## **🚀 Setup Instructions**
 
-- **Backend:** Python with Flask
-- **AI Models:** OpenAI's GPT-4
-- **Web Scraping:** BeautifulSoup4
-- **Search API:** SerpAPI
-- **Frontend:** HTML, CSS, JavaScript
+### **Prerequisites**
 
-## Setup Instructions
+* Python 3.x  
+* Git
 
-### Prerequisites
+### **Installation**
 
-- Python 3.8 or higher
-- API keys for OpenAI and SerpAPI
+1. Clone the repository:  
+   git clone https://github.com/yourusername/web-research-agent.git  
+   cd web-research-agent
 
-### Installation
+2. Create a virtual environment and activate it:  
+   \# For Linux/macOS  
+   python \-m venv venv  
+   source venv/bin/activate
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/web-research-agent.git
-cd web-research-agent
-```
+   \# For Windows  
+   python \-m venv venv  
+   .\\venv\\Scripts\\activate
 
-2. Create a virtual environment and activate it:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+3. Install the dependencies:  
+   pip install \-r requirements.txt
 
-3. Install the dependencies:
-```bash
-pip install -r requirements.txt
-```
+### **Configuration**
 
-4. Create a `.env` file in the root directory with your API keys:
-```
-OPENAI_API_KEY=your_openai_api_key
-SERPAPI_KEY=your_serpapi_key
-```
+1. Create a .env file in the root directory of the project.  
+2. Add your API keys to the .env file:  
+   GEMINI\_API\_KEY=your\_gemini\_api\_key  
+   SERPAPI\_KEY=your\_serpapi\_key
 
-### Running the Application
+## **🎯 Usage**
 
-1. Start the Flask application:
-```bash
-python app.py
-```
+1. Start the Flask server:  
+   python app.py
 
-2. Open your browser and go to `http://localhost:5000`
+2. Open your browser and navigate to http://localhost:8080 (or the port specified by the application).  
+3. Enter your research query in the input field and click "Research".
 
-3. Enter your research query and click "Research"
+## **⚠️ Error Handling and Limitations**
 
-## Usage
+### **Current Limitations**
 
-1. Enter a research query in the input field
-2. Click the "Research" button
-3. Wait for the agent to complete its research
-4. View the comprehensive research report
+1. **API Dependency:** The application relies on external APIs (SerpAPI and Google Gemini). Availability and usage limits of these services may affect functionality.  
+2. **Content Extraction:** Web scraping can be unreliable for websites with complex JavaScript rendering or anti-scraping measures.  
+3. **Processing Time:** Complex queries requiring extensive searching and analysis can take significant time to process.  
+4. **Concurrent Requests:** The current setup might have limitations on handling a large number of simultaneous requests (e.g., limited to 3 concurrent requests as mentioned).
 
-## Error Handling
+## **📜 License**
 
-The agent includes robust error handling for:
-- API failures
-- Website scraping issues
-- Content analysis problems
-- Invalid user queries
-
-## Testing
-
-Run the tests using:
-```bash
-python -m unittest discover tests
-```
-
-## Future Improvements
-
-- Add support for more data sources
-- Implement caching for faster responses
-- Add user authentication
-- Improve content extraction from complex websites
-- Add support for PDF and document analysis
+[MIT License](http://docs.google.com/LICENSE)
