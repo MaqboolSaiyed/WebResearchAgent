@@ -1,20 +1,18 @@
-import multiprocessing
-
 # Server socket
 bind = "0.0.0.0:8000"
 
-# Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
+# Worker processes - use fewer workers to reduce memory usage
+workers = 2
 worker_class = "sync"
 worker_connections = 1000
 
-# Timeout settings
-timeout = 120  # Increase timeout to 120 seconds
+# Timeout settings - increase timeout for long-running research queries
+timeout = 300  # 5 minutes
 graceful_timeout = 30
 keepalive = 2
 
 # Memory management
-max_requests = 100
+max_requests = 50
 max_requests_jitter = 10
 
 # Logging

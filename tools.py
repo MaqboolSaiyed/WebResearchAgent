@@ -94,7 +94,7 @@ class WebScraperTool:
             gc.collect()
 
             # Further reduce content size
-            max_content_length = 15000  # Reduced from 25000
+            max_content_length = 15000  # Reduced from 50000
             content = text[:max_content_length]
 
             # Clear text to free memory
@@ -126,7 +126,7 @@ class ContentAnalyzerTool:
         """
         try:
             # Truncate text if too long
-            max_length = 5000  # Reduced from 7500
+            max_length = 5000  # Reduced from 15000
             if len(text) > max_length:
                 text = text[:max_length]
 
