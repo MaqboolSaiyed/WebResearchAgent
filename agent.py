@@ -5,6 +5,7 @@ import google.generativeai as genai
 import re
 from dotenv import load_dotenv
 import gc  # Garbage collection
+import time  # For rate limiting
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -17,25 +18,37 @@ class WebResearchAgent:
         self.news_aggregator = NewsAggregatorTool()
         self.model = genai.GenerativeModel('gemini-1.5-pro')
 
-        # Increase configurable limits to support multiple websites
-        self.max_search_terms = 3
-        self.max_results_per_term = 3  # Increased to get more diverse sources
-        self.max_total_results = 9  # Increased to handle more results
-        self.max_extracted_sources = 3
-        self.max_synthesis_content_length = 500
+        # Severely reduce limits for low resource environment (0.1 CPU, 512MB RAM)
+        self.max_search_terms = 1  # Reduced from 2
+        self.max_results_per_term = 1  # Reduced from 2
+        self.max_total_results = 2  # Reduced from 6
+        self.max_extracted_sources = 1  # Reduced from 2
+        self.max_synthesis_content_length = 150  # Reduced from 300
+
+        # Add rate limiting to prevent CPU spikes
+        self.last_api_call = 0
+        self.min_api_interval = 2  # seconds between API calls
+
+    def _rate_limit(self):
+        """Apply rate limiting to prevent CPU spikes"""
+        current_time = time.time()
+        time_since_last_call = current_time - self.last_api_call
+        if time_since_last_call < self.min_api_interval:
+            time.sleep(self.min_api_interval - time_since_last_call)
+        self.last_api_call = time.time()
 
     def analyze_query(self, query):
         """
         Analyzes the user query to understand intent and determine search strategy
         """
         try:
-            prompt = f"""Analyze this research query: "{query}"
-            Break it down into:
-            1. Main topic
-            2. Key aspects/questions
-            3. Type of content needed (facts, opinions, news, etc.)
-            4. Suggested search terms
-            Return your analysis as a JSON object with these fields.
+            # Apply rate limiting
+            self._rate_limit()
+
+            # Simplify prompt to reduce token usage
+            prompt = f"""Analyze this query: "{query}"
+            Return JSON with: main_topic, key_aspects, content_type, search_terms.
+            Be very concise. Limit search_terms to 1-2 terms maximum.
             """
 
             response = self.model.generate_content(prompt)
@@ -55,6 +68,11 @@ class WebResearchAgent:
 
             try:
                 analysis = json.loads(json_str)
+                # Clear variables to free memory
+                del response
+                del response_text
+                del json_str
+                gc.collect()
                 return analysis
             except json.JSONDecodeError:
                 # Fallback response
@@ -79,77 +97,76 @@ class WebResearchAgent:
     def search_web(self, search_terms, is_news=False):
         """
         Searches the web using generated search terms
-        Enhanced to support multiple websites
+        Optimized for low resource environment
         """
         results = []
         # Limit search terms using the configurable limit
         search_terms = search_terms[:self.max_search_terms]
 
         for term in search_terms:
-            if is_news:
-                results.extend(self.news_aggregator.get_news(term, max_results=self.max_results_per_term))
-            else:
-                results.extend(self.web_search.search(term, num_results=self.max_results_per_term))
+            # Apply rate limiting between searches
+            time.sleep(1)
 
-        # Remove duplicates based on URL
+            if is_news:
+                term_results = self.news_aggregator.get_news(term, max_results=self.max_results_per_term)
+            else:
+                term_results = self.web_search.search(term, num_results=self.max_results_per_term)
+
+            results.extend(term_results)
+
+            # Clear variables to free memory
+            del term_results
+            gc.collect()
+
+        # Simplified deduplication to save memory
         unique_results = []
         urls = set()
-        domains = set()  # Track unique domains to ensure diversity
 
-        # First pass: organize by domain
-        domain_results = {}
         for result in results:
             url = result["link"]
-            # Extract domain from URL
-            domain = url.split("//")[-1].split("/")[0]
+            if url not in urls:
+                unique_results.append(result)
+                urls.add(url)
 
-            if domain not in domain_results:
-                domain_results[domain] = []
+                # Break if we've reached our limit
+                if len(unique_results) >= self.max_total_results:
+                    break
 
-            domain_results[domain].append(result)
-
-        # Second pass: take top results from each domain to ensure diversity
-        for domain, domain_specific_results in domain_results.items():
-            # Take up to 3 results from each domain
-            for result in domain_specific_results[:3]:
-                if result["link"] not in urls:
-                    unique_results.append(result)
-                    urls.add(result["link"])
-                    domains.add(domain)
-
-                    # Break if we've reached our limit
-                    if len(unique_results) >= self.max_total_results:
-                        break
-
-            # Break if we've reached our limit
-            if len(unique_results) >= self.max_total_results:
-                break
-
-        # Force garbage collection
+        # Clear variables to free memory
+        del results
+        del urls
         gc.collect()
+
         return unique_results
 
     def extract_content(self, search_results, query):
         """
         Extracts and analyzes content from search results
+        Optimized for low resource environment
         """
         extracted_data = []
         # Limit to configurable max results to process
         search_results = search_results[:self.max_total_results]
 
         for result in search_results:
+            # Apply rate limiting between scraping operations
+            time.sleep(1)
+
             url = result["link"]
             scraped_data = self.web_scraper.scrape(url)
 
             if scraped_data["content"]:
+                # Apply rate limiting before analysis
+                time.sleep(1)
+
                 analysis = self.content_analyzer.analyze(scraped_data["content"], query)
 
-                if analysis["relevance_score"] >= 5:  # Only keep relevant content
+                if analysis.get("relevance_score", 0) >= 5:  # Only keep relevant content
                     extracted_data.append({
                         "title": scraped_data["title"],
                         "url": url,
-                        "content": analysis["relevant_content"],
-                        "relevance_score": analysis["relevance_score"]
+                        "content": analysis.get("relevant_content", ""),
+                        "relevance_score": analysis.get("relevance_score", 0)
                     })
 
                 # Clear variables to free memory
@@ -168,8 +185,12 @@ class WebResearchAgent:
     def synthesize_information(self, extracted_data, query):
         """
         Synthesizes extracted information into a comprehensive report
+        Optimized for low resource environment
         """
         try:
+            # Apply rate limiting
+            self._rate_limit()
+
             # Prepare content for synthesis
             context = []
             # Limit to configurable top sources
@@ -177,26 +198,22 @@ class WebResearchAgent:
 
             for item in extracted_data:
                 # Limit content length for each source using the configurable limit
-                content = item['content']
+                content = item.get('content', '')
                 if len(content) > self.max_synthesis_content_length:
                     content = content[:self.max_synthesis_content_length] + "..."
 
-                context.append(f"Source: {item['title']} ({item['url']})\n{content}\n")
+                context.append(f"Source: {item.get('title', 'Unknown')} ({item.get('url', '')})\n{content}\n")
 
             context_text = "\n".join(context)
 
-            prompt = f"""Based on the following extracted information, provide a comprehensive research report answering the query: "{query}"
+            # Simplified prompt to reduce token usage
+            prompt = f"""Based on this information, answer: "{query}"
 
-            EXTRACTED INFORMATION:
+            INFORMATION:
             {context_text}
 
-            Create a well-structured report that:
-            1. Directly answers the query
-            2. Synthesizes information from multiple sources
-            3. Identifies any conflicting information
-            4. Includes proper citations to sources
-
-            Keep the report concise, maximum 1000 words.
+            Create a concise report (max 500 words) that answers the query.
+            Include proper citations.
             """
 
             response = self.model.generate_content(prompt)
@@ -205,12 +222,13 @@ class WebResearchAgent:
             # Add sources at the end
             sources = "\n\nSources:\n"
             for i, item in enumerate(extracted_data):
-                sources += f"{i+1}. {item['title']} - {item['url']}\n"
+                sources += f"{i+1}. {item.get('title', 'Unknown')} - {item.get('url', '')}\n"
 
             # Clear variables to free memory
             del context
             del context_text
             del prompt
+            del response
             gc.collect()
 
             return report + sources
@@ -224,7 +242,7 @@ class WebResearchAgent:
     def research(self, query):
         """
         Main method to perform web research based on user query
-        Enhanced to support multiple websites and better memory management
+        Optimized for low resource environment
         """
         try:
             # Step 1: Analyze the query
@@ -238,50 +256,26 @@ class WebResearchAgent:
             elif not isinstance(analysis["search_terms"], list):
                 analysis["search_terms"] = [analysis["search_terms"]]  # Convert to list if it's a string
 
-            # Process all search terms to get diverse sources
+            # Process search terms
             search_terms = analysis["search_terms"][:self.max_search_terms]
             search_results = self.search_web(search_terms)
 
-            # Step 3: Search for news if needed
-            if "content_type" in analysis and (analysis["content_type"] == "news" or "news" in analysis["content_type"]):
-                news_results = self.search_web(search_terms, is_news=True)
-                search_results.extend(news_results[:3])  # Include more news results
+            # Clear memory after each major step
+            gc.collect()
 
-            # Step 4: Extract and analyze content
+            # Step 3: Extract and analyze content
             extracted_data = self.extract_content(search_results, query)
 
-            # Step 5: Synthesize information
+            # Clear memory after each major step
+            del search_results
+            gc.collect()
+
+            # Step 4: Synthesize information
             if extracted_data:
-                # Count unique domains to ensure we have at least 3 sources
-                domains = set()
-                for item in extracted_data:
-                    url = item["url"]
-                    domain = url.split("//")[-1].split("/")[0]
-                    domains.add(domain)
-
-                # If we don't have enough diverse sources, try to get more
-                if len(domains) < 3 and len(search_terms) > 1:
-                    # Try additional search with different terms
-                    additional_results = self.search_web(search_terms[1:])
-                    additional_data = self.extract_content(additional_results, query)
-
-                    # Add new sources that have different domains
-                    for item in additional_data:
-                        url = item["url"]
-                        domain = url.split("//")[-1].split("/")[0]
-
-                        if domain not in domains:
-                            extracted_data.append(item)
-                            domains.add(domain)
-
-                            if len(domains) >= 3:
-                                break
-
                 report = self.synthesize_information(extracted_data, query)
 
                 # Clear variables to free memory
                 del analysis
-                del search_results
                 del extracted_data
                 gc.collect()
 

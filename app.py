@@ -62,7 +62,7 @@ def perform_research():
 
     # Wait for result with timeout
     try:
-        result = result_queue.get(timeout=60)  # 60 second timeout
+        result = result_queue.get(timeout=120)  # Increase timeout from 60 to 120 seconds
         if result["success"]:
             return jsonify({'result': result["result"]})
         else:
