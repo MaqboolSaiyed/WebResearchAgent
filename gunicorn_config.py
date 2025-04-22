@@ -6,13 +6,13 @@ workers = 1
 worker_class = "sync"
 worker_connections = 500  # Reduced from 1000
 
-# Timeout settings - balance between allowing research and preventing hangs
-timeout = 300  # 5 minutes (reduced from 10)
-graceful_timeout = 20  # Reduced from 30
+# Timeout settings - increased to handle complex queries
+timeout = 600  # 10 minutes (increased from 5)
+graceful_timeout = 30  # Increased from 20
 keepalive = 2
 
 # Memory management - aggressive recycling for low memory
-max_requests = 5  # Recycle workers very frequently
+max_requests = 3  # Recycle workers even more frequently
 max_requests_jitter = 2  # Small jitter to prevent all workers recycling at once
 
 # Logging - minimal logging to save memory
@@ -24,9 +24,9 @@ loglevel = "warning"  # Only log warnings and errors
 proc_name = "web_research_agent"
 
 # Limit worker memory usage - stricter limits
-limit_request_line = 2048  # Reduced from 4096
-limit_request_fields = 50   # Reduced from 100
-limit_request_field_size = 4096  # Reduced from 8190
+limit_request_line = 2048
+limit_request_fields = 50
+limit_request_field_size = 4096
 
 # Pre-fork hooks for memory optimization
 def pre_fork(server, worker):
@@ -42,3 +42,13 @@ def post_fork(server, worker):
 def worker_exit(server, worker):
     import gc
     gc.collect()
+
+# Add worker timeout handler
+def worker_abort(worker):
+    import gc
+    gc.collect()
+
+# Add memory monitoring
+def on_starting(server):
+    import psutil
+    print(f"Available memory: {psutil.virtual_memory().available / (1024 * 1024):.2f} MB")

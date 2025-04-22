@@ -98,6 +98,21 @@ The application is designed to be deployed on Render, which provides:
 - HTTPS support
 - Free tier for testing and development
 
+### Deployed Instance
+
+The Web Research Agent is currently deployed and accessible at:
+[https://webresearchagent.onrender.com/](https://webresearchagent.onrender.com/)
+
+This instance is running on Render's free tier with the following resource constraints:
+- 0.1 CPU
+- 512MB RAM
+
+These constraints have been addressed through code optimizations including:
+- Reduced search term limits
+- Memory management with garbage collection
+- Rate limiting to prevent CPU spikes
+- Simplified processing to reduce resource usage
+
 ## Future Improvements
 
 Potential areas for improvement include:
