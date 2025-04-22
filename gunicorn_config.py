@@ -2,18 +2,18 @@
 bind = "0.0.0.0:8000"
 
 # Worker processes - use fewer workers to reduce memory usage
-workers = 2
-worker_class = "sync"
+workers = 1  # Reduced from 2
+worker_class = "sync"  # Keep sync if you don't have gevent installed
 worker_connections = 1000
 
 # Timeout settings - increase timeout for long-running research queries
-timeout = 900  # 15 minutes
+timeout = 600  # 10 minutes (reduced from 15)
 graceful_timeout = 30
 keepalive = 2
 
 # Memory management
-max_requests = 50
-max_requests_jitter = 10
+max_requests = 30  # Reduced from 50
+max_requests_jitter = 5  # Reduced from 10
 
 # Logging
 accesslog = "-"

@@ -52,6 +52,8 @@ class WebScraperTool:
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
+        # Add a configurable content limit
+        self.max_content_length = 8000  # Reduced from previous value
 
     def scrape(self, url):
         """
@@ -93,9 +95,8 @@ class WebScraperTool:
             del soup_title
             gc.collect()
 
-            # Further reduce content size
-            max_content_length = 15000  # Reduced from 50000
-            content = text[:max_content_length]
+            # Further reduce content size using the configurable limit
+            content = text[:self.max_content_length]
 
             # Clear text to free memory
             del text
@@ -119,20 +120,21 @@ class ContentAnalyzerTool:
         self.api_key = os.getenv("GEMINI_API_KEY")
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-1.5-pro')
+        # Add a configurable content limit
+        self.max_analysis_length = 3000  # Reduced from previous value
 
     def analyze(self, text, query):
         """
         Analyzes text content for relevance to the query
         """
         try:
-            # Truncate text if too long
-            max_length = 5000  # Reduced from 15000
-            if len(text) > max_length:
-                text = text[:max_length]
+            # Truncate text if too long using the configurable limit
+            if len(text) > self.max_analysis_length:
+                text = text[:self.max_analysis_length]
 
             prompt = f"""Analyze the following text for information relevant to this query: '{query}'.
             Return a JSON object with two fields: 'relevance_score' (0-10 scale) and 'relevant_content' (extracted relevant information).
-            Keep the relevant_content concise, maximum 1000 words.
+            Keep the relevant_content concise, maximum 800 words.
 
             Text to analyze: {text}"""
 

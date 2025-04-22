@@ -17,6 +17,13 @@ class WebResearchAgent:
         self.news_aggregator = NewsAggregatorTool()
         self.model = genai.GenerativeModel('gemini-1.5-pro')
 
+        # Add configurable limits
+        self.max_search_terms = 2
+        self.max_results_per_term = 2
+        self.max_total_results = 3
+        self.max_extracted_sources = 2
+        self.max_synthesis_content_length = 1000
+
     def analyze_query(self, query):
         """
         Analyzes the user query to understand intent and determine search strategy
@@ -74,14 +81,14 @@ class WebResearchAgent:
         Searches the web using generated search terms
         """
         results = []
-        # Limit search terms to reduce memory usage
-        search_terms = search_terms[:2]  # Process max 2 search terms
+        # Limit search terms using the configurable limit
+        search_terms = search_terms[:self.max_search_terms]
 
         for term in search_terms:
             if is_news:
-                results.extend(self.news_aggregator.get_news(term, max_results=2))
+                results.extend(self.news_aggregator.get_news(term, max_results=self.max_results_per_term))
             else:
-                results.extend(self.web_search.search(term, num_results=2))
+                results.extend(self.web_search.search(term, num_results=self.max_results_per_term))
 
         # Remove duplicates based on URL
         unique_results = []
@@ -91,8 +98,8 @@ class WebResearchAgent:
                 unique_results.append(result)
                 urls.add(result["link"])
 
-                # Limit to max 3 results total to reduce memory usage
-                if len(unique_results) >= 3:
+                # Limit to configurable max total results
+                if len(unique_results) >= self.max_total_results:
                     break
 
         # Force garbage collection
@@ -104,8 +111,8 @@ class WebResearchAgent:
         Extracts and analyzes content from search results
         """
         extracted_data = []
-        # Limit to max 3 results to process
-        search_results = search_results[:2]
+        # Limit to configurable max results to process
+        search_results = search_results[:self.max_total_results]
 
         for result in search_results:
             url = result["link"]
@@ -129,8 +136,8 @@ class WebResearchAgent:
 
         # Sort by relevance score
         extracted_data.sort(key=lambda x: x["relevance_score"], reverse=True)
-        # Limit to top 2 most relevant results
-        extracted_data = extracted_data[:2]
+        # Limit to configurable top most relevant results
+        extracted_data = extracted_data[:self.max_extracted_sources]
 
         gc.collect()
         return extracted_data
@@ -142,14 +149,14 @@ class WebResearchAgent:
         try:
             # Prepare content for synthesis
             context = []
-            # Limit to top 2 sources
-            extracted_data = extracted_data[:2]
+            # Limit to configurable top sources
+            extracted_data = extracted_data[:self.max_extracted_sources]
 
             for item in extracted_data:
-                # Limit content length for each source
+                # Limit content length for each source using the configurable limit
                 content = item['content']
-                if len(content) > 1500:
-                    content = content[:1500] + "..."
+                if len(content) > self.max_synthesis_content_length:
+                    content = content[:self.max_synthesis_content_length] + "..."
 
                 context.append(f"Source: {item['title']} ({item['url']})\n{content}\n")
 
