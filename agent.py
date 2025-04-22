@@ -164,11 +164,14 @@ class WebResearchAgent:
             elif not isinstance(analysis["search_terms"], list):
                 analysis["search_terms"] = [analysis["search_terms"]]  # Convert to list if it's a string
 
+            # Limit the number of search results to process
             search_results = self.search_web(analysis["search_terms"])
+            search_results = search_results[:5]  # Process max 5 results
 
             # Step 3: Search for news if needed
             if "content_type" in analysis and (analysis["content_type"] == "news" or "news" in analysis["content_type"]):
                 news_results = self.search_web(analysis["search_terms"], is_news=True)
+                news_results = news_results[:3]  # Limit news results too
                 search_results.extend(news_results)
 
             # Step 4: Extract and analyze content
@@ -177,9 +180,28 @@ class WebResearchAgent:
             # Step 5: Synthesize information
             if extracted_data:
                 report = self.synthesize_information(extracted_data, query)
+
+                # Add explicit cleanup
+                import gc
+                gc.collect()
+
                 return report
             else:
                 return "I couldn't find relevant information for your query. Please try with different search terms."
         except Exception as e:
             print(f"Error in research process: {e}")
             return f"An error occurred during the research process: {str(e)}"
+
+            # Limit the number of search results to process
+            search_results = search_results[:5]  # Process max 5 results
+            # Add explicit cleanup
+            import gc
+            gc.collect()
+
+            return result
+        except Exception as e:
+                print(f"Error in research process: {e}")
+                return f"An error occurred during the research process: {str(e)}"
+
+                # Limit the number of search results to process
+                search_results = search_results[:5]  # Process max 5 results

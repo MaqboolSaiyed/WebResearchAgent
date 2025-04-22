@@ -73,9 +73,10 @@ class WebScraperTool:
             # Extract title
             title = soup.title.string if soup.title else "No title found"
 
+            # In WebScraperTool.scrape
             return {
                 "title": title,
-                "content": text[:50000],  # Limit content size
+                "content": text[:25000],  # Reduced from 50000
                 "url": url
             }
         except Exception as e:
@@ -98,7 +99,8 @@ class ContentAnalyzerTool:
         """
         try:
             # Truncate text if too long
-            max_length = 15000
+            # In ContentAnalyzerTool.analyze
+            max_length = 7500  # Reduced from 15000
             if len(text) > max_length:
                 text = text[:max_length]
 
