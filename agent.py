@@ -132,11 +132,9 @@ class WebResearchAgent:
                            if is_news
                            else self.web_search.search(term, num_results=params.get("max_results_per_term", self.max_results_per_term)) or [])
 
-            # Filter out None entries
+            # Filter out None entries and only extend results once
             if term_results:
                 results.extend([r for r in term_results if isinstance(r, dict)])
-
-            results.extend(term_results)
 
             # Clear variables to free memory
             del term_results
@@ -147,6 +145,10 @@ class WebResearchAgent:
         urls = set()
 
         for result in results:
+            # Add null check for result and result["link"]
+            if not result or not isinstance(result, dict) or "link" not in result:
+                continue
+
             url = result["link"]
             if url not in urls:
                 unique_results.append(result)
