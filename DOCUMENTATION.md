@@ -81,6 +81,10 @@ The research process follows these steps:
 3. **Processing Time**: Complex queries can take significant time to process
 4. **Concurrent Requests**: Increased from 3 to 5 concurrent requests on Vercel deployment
 
+### Deployment
+
+The application is deployed on Vercel and can be accessed at: [https://web-research-agent.vercel.app/](https://web-research-agent.vercel.app/)
+
 #### Single Website Result Issue
 Previously, when deployed on Render's free tier with limited resources (0.1 CPU, 512MB RAM) and a 10-second timeout, the application often returned results from only one website due to:
 - Insufficient time to process multiple search results before timeout
@@ -91,7 +95,7 @@ The Vercel deployment with increased resources (0.6 CPU, 1026MB RAM) and 60-seco
 - Allowing more time to process multiple search results
 - Providing sufficient memory to store and analyze content from multiple websites
 - Offering more CPU power for faster content processing and analysis
-- Supporting more concurrent requests (increased from 3 to 5)
+- Supporting more concurrent requests
 
 ## Configuration
 
@@ -112,9 +116,9 @@ The application can be deployed on Render, which provides:
 
 ### Vercel Deployment
 The application is now optimized for deployment on Vercel with the following specifications:
-- **CPU Allocation**: 0.6 CPU (6x more than Render's free tier)
-- **Memory**: 1026MB RAM (2x more than Render's free tier)
-- **Timeout**: 60 seconds (increased from the default 10 seconds)
+- **CPU Allocation**: 0.6 CPU
+- **Memory**: 1026MB RAM
+- **Timeout**: 60 seconds
 
 To deploy on Vercel:
 1. Connect your GitHub repository to Vercel
@@ -131,11 +135,11 @@ The Vercel deployment offers significantly better performance with higher resour
 ### Deployed Instance
 
 The Web Research Agent is currently deployed and accessible at:
-[https://webresearchagent.onrender.com/](https://webresearchagent.onrender.com/)
+[https://web-research-agent.vercel.app/](https://web-research-agent.vercel.app/)
 
-This instance is running on Render's free tier with the following resource constraints:
-- 0.1 CPU
-- 512MB RAM
+This instance is running on Vercel's free tier with the following resource constraints:
+- 0.6 CPU
+- 1026MB RAM
 
 These constraints have been addressed through code optimizations including:
 - Reduced search term limits

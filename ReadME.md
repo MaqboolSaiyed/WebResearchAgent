@@ -2,12 +2,6 @@
 
 A powerful web research assistant that automates online research tasks using AI.
 
-## **🌐 Live Demo**
-
-Try out the Web Research Agent at: [https://webresearchagent.onrender.com/](https://webresearchagent.onrender.com/) or on our Vercel deployment (faster performance).
-
-Note: The application is deployed on both Render's free tier (0.1 CPU, 512MB RAM) and Vercel (0.6 CPU, 1026MB RAM). The Vercel deployment offers significantly better performance with a 60-second timeout compared to Render's 10-second timeout.
-
 ## **✨ Features**
 
 * **Automated Web Search:** 🌐 Search across multiple sources, hands-free!
@@ -99,13 +93,27 @@ The application is optimized to work within Vercel's resource limits (0.6 CPU, 1
 3. Enter your research query in the input field and click "Research".
 
 ## **⚠️ Error Handling and Limitations**
-
 ### **Current Limitations**
 
 1. **API Dependency:** The application relies on external APIs (SerpAPI and Google Gemini). Availability and usage limits of these services may affect functionality.
 2. **Content Extraction:** Web scraping can be unreliable for websites with complex JavaScript rendering or anti-scraping measures.
 3. **Processing Time:** Complex queries requiring extensive searching and analysis can take significant time to process.
-4. **Concurrent Requests:** The current setup might have limitations on handling a large number of simultaneous requests (e.g., limited to 3 concurrent requests as mentioned).
+4. **Concurrent Requests:** The application supports up to 5 concurrent requests on the Vercel deployment.
+
+## **🚀 Deployment**
+
+The application is deployed on Vercel and can be accessed at: [https://web-research-agent.vercel.app/](https://web-research-agent.vercel.app/)
+
+### **Vercel Deployment Specifications**
+- **CPU Allocation:** 0.6 CPU
+- **Memory:** 1026MB RAM
+- **Timeout:** 60 seconds
+
+These improved resources resolve previous limitations when the application was deployed on Render's free tier (0.1 CPU, 512MB RAM, 10-second timeout), allowing:
+- Processing of multiple search results before timeout
+- Sufficient memory to store and analyze content from multiple websites
+- More CPU power for faster content processing and analysis
+- Support for more concurrent requests (increased from 3 to 5)
 
 ## **📜 License**
 
