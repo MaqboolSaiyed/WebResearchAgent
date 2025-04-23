@@ -19,12 +19,12 @@ class WebResearchAgent:
         self.news_aggregator = NewsAggregatorTool()
         self.model = genai.GenerativeModel('gemini-1.5-pro')
 
-        # Extremely reduced limits for very low resource environment
-        self.max_search_terms = 1  # Already at minimum
-        self.max_results_per_term = 1  # Already at minimum
-        self.max_total_results = 1  # Reduced from 2
-        self.max_extracted_sources = 1  # Already at minimum
-        self.max_synthesis_content_length = 100  # Reduced from 150
+        # Updated limits for better handling of complex topics
+        self.max_search_terms = 2
+        self.max_results_per_term = 1
+        self.max_total_results = 1
+        self.max_extracted_sources = 2
+        self.max_synthesis_content_length = 150
 
         # Increase rate limiting to prevent CPU spikes
         self.last_api_call = 0
@@ -307,13 +307,6 @@ class WebResearchAgent:
         finally:
             # Force garbage collection at the end
             gc.collect()
-
-    # Adjusted limits for better handling of complex topics
-    self.max_search_terms = 2  # Increased from 1
-    self.max_results_per_term = 2  # Increased from 1
-    self.max_total_results = 2  # Increased from 1
-    self.max_extracted_sources = 2  # Increased from 1
-    self.max_synthesis_content_length = 150  # Increased from 100
 
     def _adjust_search_parameters(self, query):
         """Dynamically adjust search parameters based on query complexity"""
