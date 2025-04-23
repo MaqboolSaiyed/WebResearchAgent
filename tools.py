@@ -80,7 +80,34 @@ class WebSearchTool:
 class WebScraperTool:
     def __init__(self):
         self.headers = {"User-Agent": "Mozilla/5.0"}
-        self.max_content_length = 1000  # Reduced from 5000
+        self.max_content_length = 1000
+
+    def scrape(self, url):
+        """Scrapes content from a URL with error handling and content length limits"""
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            # Extract title and main content
+            title = soup.title.string if soup.title else 'No title found'
+            content = soup.get_text(separator='\n', strip=True)
+
+            # Limit content size to prevent memory issues
+            content = content[:self.max_content_length]
+
+            return {
+                "title": title,
+                "content": content,
+                "url": url
+            }
+
+        except Exception as e:
+            print(f"Error scraping {url}: {e}")
+            return {
+                "title": "Error loading page",
+                "content": "",
+                "url": url
+            }
 
 class ContentAnalyzerTool:
     def __init__(self):
