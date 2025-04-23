@@ -19,31 +19,20 @@ class WebResearchAgent:
         self.news_aggregator = NewsAggregatorTool()
         self.model = genai.GenerativeModel('gemini-1.5-flash')  # Lighter model
 
-        # Tighter resource constraints
-        self.max_search_terms = 1
-        self.max_results_per_term = 1
-        self.max_total_results = 1
-        self.max_extracted_sources = 1
-        self.max_synthesis_content_length = 100  # Reduced from 100
-
-        # More aggressive rate limiting
-        self.last_api_call = 0
-        self.min_api_interval = 5  # Increased from 3
-
-        # Memory optimization
-        self.last_gc = time.time()
-        self.gc_interval = 30  # Force GC every 30 seconds
-
-        # Updated limits for better handling of complex topics
+        # Resource constraints optimized for low-resource environment (0.1 CPU, 512MB RAM)
         self.max_search_terms = 1
         self.max_results_per_term = 1
         self.max_total_results = 1
         self.max_extracted_sources = 1
         self.max_synthesis_content_length = 100
 
-        # Increase rate limiting to prevent CPU spikes
+        # Rate limiting to prevent CPU spikes
         self.last_api_call = 0
-        self.min_api_interval = 3  # Increased from 2
+        self.min_api_interval = 3  # Seconds between API calls
+
+        # Memory optimization
+        self.last_gc = time.time()
+        self.gc_interval = 30  # Force GC every 30 seconds
 
     def _rate_limit(self):
         """Apply rate limiting to prevent CPU spikes"""
@@ -115,7 +104,7 @@ class WebResearchAgent:
     def search_web(self, search_terms, is_news=False, query=""):
         """Searches the web using generated search terms"""
         results = []
-        params = self._adjust_search_parameters(query)
+        params = self._adjust_search_parameters(query) or {}  # Ensure params is at least an empty dict
 
         # Add null check for search_terms
         if not search_terms or not isinstance(search_terms, list):
@@ -330,6 +319,12 @@ class WebResearchAgent:
 
     def _adjust_search_parameters(self, query):
         """Dynamically adjust search parameters based on query complexity"""
+        if not query:  # Handle empty query case
+            return {
+                "max_results_per_term": self.max_results_per_term,
+                "standard_search": True
+            }
+
         word_count = len(query.split())
 
         if word_count < 3:  # Very short query

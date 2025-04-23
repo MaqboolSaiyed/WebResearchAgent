@@ -111,13 +111,11 @@ class WebScraperTool:
 
 class ContentAnalyzerTool:
     def __init__(self):
-        self.max_analysis_length = 500  # Reduced from 2000
-        self.model = genai.GenerativeModel('gemini-1.5-flash')  # Lighter model
         self.api_key = os.getenv("GEMINI_API_KEY")
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
-        # Add a configurable content limit
-        self.max_analysis_length = 2000
+        self.model = genai.GenerativeModel('gemini-1.5-flash')  # Lighter model
+        # Set a reasonable content limit for low-resource environment
+        self.max_analysis_length = 1000  # Balanced value between 500 and 2000
         self.last_request_time = 0
         self.min_request_interval = 1  # Minimum 1 second between requests
 
@@ -154,7 +152,7 @@ class ContentAnalyzerTool:
 
                     Keep the relevant_content concise, maximum 800 words.
 
-                    Text to analyze: {text}"""
+                    Text to analyze: {chunk}"""
 
                     response = self.model.generate_content(prompt)
 
@@ -163,7 +161,6 @@ class ContentAnalyzerTool:
 
                     # Clear variables to free memory
                     del response
-                    del text
                     del prompt
                     gc.collect()
 
@@ -198,7 +195,12 @@ class ContentAnalyzerTool:
                         del response_text
                         gc.collect()
 
-                        return result
+                        # Add result to our collections
+                        relevance_scores.append(result.get("relevance_score", 5))
+                        all_relevant_content.append(result.get("relevant_content", ""))
+
+                        # Continue to next chunk instead of returning immediately
+                        continue
                     except json.JSONDecodeError:
                         # If we can't parse JSON, return a default response
                         content = response_text[:800]
@@ -207,7 +209,87 @@ class ContentAnalyzerTool:
                         del response_text
                         gc.collect()
 
-                        return {"relevance_score": 5, "relevant_content": content, "source_quality": 5}
+                        # Add default result to our collections
+                        relevance_scores.append(5)
+                        all_relevant_content.append(content)
+
+                        # Continue to next chunk instead of returning immediately
+                        continue
+
+                # After processing all chunks, combine results
+                # Use the highest relevance score
+                avg_relevance = sum(relevance_scores) / len(relevance_scores) if relevance_scores else 5
+                combined_content = " ".join(all_relevant_content)
+
+                # Limit combined content length
+                if len(combined_content) > 2000:
+                    combined_content = combined_content[:2000]
+
+                return {
+                    "relevance_score": avg_relevance,
+                    "relevant_content": combined_content,
+                    "source_quality": 5
+                }
+
+            # For content that doesn't need chunking, process normally
+            prompt = f"""Analyze the following text for information relevant to this query: '{query}'.
+            Return a JSON object with three fields:
+            1. 'relevance_score' (0-10 scale)
+            2. 'relevant_content' (extracted relevant information)
+            3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
+
+            Keep the relevant_content concise, maximum 800 words.
+
+            Text to analyze: {text}"""
+
+            response = self.model.generate_content(prompt)
+            response_text = response.text
+
+            # Find JSON content between code blocks if present
+            json_match = re.search(r'```(?:json)?\s*(.*?)```', response_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                # Try to find anything that looks like JSON
+                json_str = re.search(r'(\{.*\})', response_text, re.DOTALL)
+                if json_str:
+                    json_str = json_str.group(1)
+                else:
+                    json_str = response_text
+
+            try:
+                result = json.loads(json_str)
+                # Ensure the result has the expected fields
+                if "relevance_score" not in result:
+                    result["relevance_score"] = 5
+                if "relevant_content" not in result:
+                    result["relevant_content"] = "No relevant content extracted"
+                if "source_quality" not in result:
+                    result["source_quality"] = 5
+
+                # Limit the size of relevant_content
+                if len(result["relevant_content"]) > 2000:
+                    result["relevant_content"] = result["relevant_content"][:2000]
+
+                # Clear variables to free memory
+                del json_str
+                del response_text
+                del response
+                del prompt
+                gc.collect()
+
+                return result
+            except json.JSONDecodeError:
+                # If we can't parse JSON, return a default response
+                content = response_text[:800]
+
+                # Clear variables to free memory
+                del response_text
+                del response
+                del prompt
+                gc.collect()
+
+                return {"relevance_score": 5, "relevant_content": content, "source_quality": 5}
 
         except Exception as e:
             print(f"Error in content analysis: {e}")
@@ -218,50 +300,6 @@ class NewsAggregatorTool:
         self.api_key = os.getenv("SERPAPI_KEY")
         self.last_request_time = 0
         self.min_request_interval = 1  # Minimum 1 second between requests
-
-    def get_news(self, query, max_results=3):
-        """
-        Retrieves news articles related to the query
-        """
-        try:
-            # Rate limiting
-            current_time = time.time()
-            time_since_last_request = current_time - self.last_request_time
-            if time_since_last_request < self.min_request_interval:
-                time.sleep(self.min_request_interval - time_since_last_request)
-
-            self.last_request_time = time.time()
-
-            params = {
-                "engine": "google",
-                "q": query,
-                "api_key": self.api_key,
-                "num": max_results,
-                "tbm": "nws",  # News search
-                "gl": "us",    # Search in US
-                "hl": "en"     # Language English
-            }
-            search = GoogleSearch(params)
-            results = search.get_dict()
-
-            news_results = []
-            if "news_results" in results:
-                for result in results["news_results"][:max_results]:
-                    news_results.append({
-                        "title": result.get("title", ""),
-                        "link": result.get("link", ""),
-                        "snippet": result.get("snippet", ""),
-                        "source": result.get("source", "News Source")
-                    })
-
-            # Clear variables to free memory
-            del results
-            gc.collect()
-
-            return news_results
-        except Exception as e:
-            print(f"Error in news search: {e}")
-            return []
 
     def get_news(self, topic, max_results=3):  # Reduced from 5
         """
