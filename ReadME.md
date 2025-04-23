@@ -10,7 +10,7 @@ Note: The application is deployed on Render's free tier with limited resources (
 
 ## **✨ Features**
 
-* **Automated Web Search:** 🌐 Search across multiple sources, hands-free\!
+* **Automated Web Search:** 🌐 Search across multiple sources, hands-free!
 * **Content Extraction & Analysis:** 🧠 Extracts and analyzes content for maximum relevance.
 * **Information Synthesis:** 📝 Compiles findings into comprehensive reports.
 * **News Aggregation:** 📰 Gathers the latest news on your chosen topics.
@@ -42,32 +42,42 @@ The agent integrates with the following tools:
 ### **Installation**
 
 1. Clone the repository:
+   ```bash
    git clone https://github.com/yourusername/web-research-agent.git
    cd web-research-agent
+   ```
 
 2. Create a virtual environment and activate it:
-   \# For Linux/macOS
-   python \-m venv venv
+   ```bash
+   # For Linux/macOS
+   python -m venv venv
    source venv/bin/activate
 
-   \# For Windows
-   python \-m venv venv
-   .\\venv\\Scripts\\activate
+   # For Windows
+   python -m venv venv
+   .\venv\Scripts\activate
+   ```
 
 3. Install the dependencies:
-   pip install \-r requirements.txt
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 ### **Configuration**
 
 1. Create a .env file in the root directory of the project.
 2. Add your API keys to the .env file:
-   GEMINI\_API\_KEY=your\_gemini\_api\_key
-   SERPAPI\_KEY=your\_serpapi\_key
+   ```
+   GEMINI_API_KEY=your_gemini_api_key
+   SERPAPI_KEY=your_serpapi_key
+   ```
 
 ## **🎯 Usage**
 
 1. Start the Flask server:
+   ```bash
    python app.py
+   ```
 
 2. Open your browser and navigate to http://localhost:8080 (or the port specified by the application).
 3. Enter your research query in the input field and click "Research".
@@ -83,4 +93,4 @@ The agent integrates with the following tools:
 
 ## **📜 License**
 
-[MIT License](http://docs.google.com/LICENSE)
+[MIT License](LICENSE)
