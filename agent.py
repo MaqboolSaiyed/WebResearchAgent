@@ -19,12 +19,12 @@ class WebResearchAgent:
         self.news_aggregator = NewsAggregatorTool()
         self.model = genai.GenerativeModel('gemini-1.5-flash')  # Lighter model
 
-        # Resource constraints optimized for low-resource environment (0.1 CPU, 512MB RAM)
-        self.max_search_terms = 1
-        self.max_results_per_term = 1
-        self.max_total_results = 1
-        self.max_extracted_sources = 1
-        self.max_synthesis_content_length = 100
+        # Resource constraints optimized for Vercel environment (0.6 CPU, 1026MB RAM)
+        self.max_search_terms = 3
+        self.max_results_per_term = 3
+        self.max_total_results = 5
+        self.max_extracted_sources = 3
+        self.max_synthesis_content_length = 250
 
         # Rate limiting to prevent CPU spikes
         self.last_api_call = 0
@@ -268,7 +268,7 @@ class WebResearchAgent:
             process = psutil.Process()
             memory_info = process.memory_info()
             memory_usage_mb = memory_info.rss / (1024 * 1024)
-            max_memory_mb = 400  # Set to 400MB to leave buffer in 512MB environment
+            max_memory_mb = 800  # Set to 800MB to leave buffer in 1026MB environment
 
             if memory_usage_mb > max_memory_mb * 0.8:  # If using more than 80% of allowed memory
                 gc.collect()  # Force garbage collection

@@ -18,7 +18,7 @@ Note: The application is deployed on Render's free tier with limited resources (
 ## **🛠️ Technical Implementation**
 
 * **Backend:** Python with Flask 🐍
-* **AI Models:** Google Gemini 1.5 Pro 🤖
+* **AI Models:** Google Gemini 1.5 Flash 🤖
 * **Web Scraping:** BeautifulSoup4 🍜
 * **Search API:** SerpAPI 🔍
 * **Frontend:** HTML, CSS, JavaScript 🎨
