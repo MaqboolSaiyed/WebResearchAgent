@@ -26,13 +26,13 @@ def apply_rate_limit(last_call_time, min_interval):
     return time.time()
 
 # Memory management utilities
-def check_memory_usage(max_memory_mb=800, threshold=0.8):
+def check_memory_usage(max_memory_mb=900, threshold=0.85):
     """
     Check current memory usage and perform garbage collection if needed
     Optimized for Vercel environment (1026MB RAM)
 
     Args:
-        max_memory_mb (int): Maximum allowed memory in MB
+        max_memory_mb (int): Maximum allowed memory in MB (default: 900)
         threshold (float): Threshold percentage (0.0-1.0) to trigger garbage collection
 
     Returns:

@@ -4,9 +4,9 @@ A powerful web research assistant that automates online research tasks using AI.
 
 ## **🌐 Live Demo**
 
-Try out the Web Research Agent at: [https://webresearchagent.onrender.com/](https://webresearchagent.onrender.com/)
+Try out the Web Research Agent at: [https://webresearchagent.onrender.com/](https://webresearchagent.onrender.com/) or on our Vercel deployment (faster performance).
 
-Note: The application is deployed on Render's free tier with limited resources (0.1 CPU, 512MB RAM), so response times may vary based on query complexity.
+Note: The application is deployed on both Render's free tier (0.1 CPU, 512MB RAM) and Vercel (0.6 CPU, 1026MB RAM). The Vercel deployment offers significantly better performance with a 60-second timeout compared to Render's 10-second timeout.
 
 ## **✨ Features**
 
@@ -71,6 +71,22 @@ The agent integrates with the following tools:
    GEMINI_API_KEY=your_gemini_api_key
    SERPAPI_KEY=your_serpapi_key
    ```
+
+### **Deployment Options**
+
+#### **Vercel Deployment**
+This application is optimized for deployment on Vercel:
+
+1. Connect your GitHub repository to Vercel
+2. Configure the following settings:
+   - Framework Preset: Flask
+   - Build Command: `pip install -r requirements.txt`
+   - Output Directory: `./`
+   - Install Command: `pip install -r requirements.txt`
+3. Add your environment variables (GEMINI_API_KEY and SERPAPI_KEY) in the Vercel dashboard
+4. Set the Function Execution Timeout to 60 seconds in the Vercel project settings
+
+The application is optimized to work within Vercel's resource limits (0.6 CPU, 1026MB RAM).
 
 ## **🎯 Usage**
 

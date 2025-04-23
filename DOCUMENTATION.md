@@ -79,9 +79,19 @@ The research process follows these steps:
 1. **API Dependency**: The application relies on external APIs (SerpAPI and Google Gemini)
 2. **Content Extraction**: Web scraping can be unreliable for some websites with complex structures
 3. **Processing Time**: Complex queries can take significant time to process
-4. **Concurrent Requests**: Limited to 3 concurrent requests to manage server load
+4. **Concurrent Requests**: Increased from 3 to 5 concurrent requests on Vercel deployment
 
-The primary limitation with using only one website search is that the diversity of sources is reduced, which may impact the comprehensiveness of the research. However, this approach is more efficient and reduces API usage.
+#### Single Website Result Issue
+Previously, when deployed on Render's free tier with limited resources (0.1 CPU, 512MB RAM) and a 10-second timeout, the application often returned results from only one website due to:
+- Insufficient time to process multiple search results before timeout
+- Limited memory preventing storage of multiple website contents
+- CPU constraints slowing down content processing
+
+The Vercel deployment with increased resources (0.6 CPU, 1026MB RAM) and 60-second timeout resolves these issues by:
+- Allowing more time to process multiple search results
+- Providing sufficient memory to store and analyze content from multiple websites
+- Offering more CPU power for faster content processing and analysis
+- Supporting more concurrent requests (increased from 3 to 5)
 
 ## Configuration
 
@@ -92,11 +102,31 @@ The application uses environment variables for configuration:
 
 ## Deployment
 
-The application is designed to be deployed on Render, which provides:
+### Render Deployment
+The application can be deployed on Render, which provides:
 - Easy deployment from GitHub
 - Automatic scaling
 - HTTPS support
-- Free tier for testing and development
+- Free tier for testing and development (0.1 CPU, 512MB RAM)
+- Default timeout of 10 seconds
+
+### Vercel Deployment
+The application is now optimized for deployment on Vercel with the following specifications:
+- **CPU Allocation**: 0.6 CPU (6x more than Render's free tier)
+- **Memory**: 1026MB RAM (2x more than Render's free tier)
+- **Timeout**: 60 seconds (increased from the default 10 seconds)
+
+To deploy on Vercel:
+1. Connect your GitHub repository to Vercel
+2. Configure the following settings:
+   - Framework Preset: Flask
+   - Build Command: `pip install -r requirements.txt`
+   - Output Directory: `./`
+   - Install Command: `pip install -r requirements.txt`
+3. Add your environment variables (GEMINI_API_KEY and SERPAPI_KEY) in the Vercel dashboard
+4. Set the Function Execution Timeout to 60 seconds in the Vercel project settings
+
+The Vercel deployment offers significantly better performance with higher resource limits and longer timeout periods, which helps resolve the issue of getting results from only one website.
 
 ### Deployed Instance
 

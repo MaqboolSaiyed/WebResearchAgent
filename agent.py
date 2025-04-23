@@ -20,15 +20,15 @@ class WebResearchAgent:
         self.model = genai.GenerativeModel('gemini-1.5-flash')  # Lighter model
 
         # Resource constraints optimized for Vercel environment (0.6 CPU, 1026MB RAM)
-        self.max_search_terms = 3
-        self.max_results_per_term = 3
-        self.max_total_results = 5
-        self.max_extracted_sources = 3
-        self.max_synthesis_content_length = 250
+        self.max_search_terms = 4
+        self.max_results_per_term = 4
+        self.max_total_results = 8
+        self.max_extracted_sources = 5
+        self.max_synthesis_content_length = 500
 
-        # Rate limiting to prevent CPU spikes
+        # Rate limiting to prevent CPU spikes - adjusted for Vercel
         self.last_api_call = 0
-        self.min_api_interval = 3  # Seconds between API calls
+        self.min_api_interval = 2  # Reduced interval for Vercel's better CPU allocation
 
         # Memory optimization
         self.last_gc = time.time()

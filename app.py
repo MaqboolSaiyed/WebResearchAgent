@@ -9,7 +9,7 @@ import psutil  # Already in your requirements.txt
 app = Flask(__name__)
 # Track active workers
 active_workers = 0
-max_workers = 3  # Maximum concurrent workers
+max_workers = 5  # Maximum concurrent workers for Vercel environment (0.6 CPU)
 
 # Create a global agent instance that can be reused
 research_agent = None
@@ -26,11 +26,11 @@ def process_request(query, result_queue):
         if research_agent is None:
             research_agent = WebResearchAgent()
 
-        # Check memory usage before processing
+        # Check memory usage before processing - optimized for Vercel (1026MB RAM)
         process = psutil.Process()
         memory_info = process.memory_info()
         memory_usage_mb = memory_info.rss / (1024 * 1024)
-        max_memory_mb = int(os.getenv('WORKER_MAX_MEMORY_MB', 256))
+        max_memory_mb = int(os.getenv('WORKER_MAX_MEMORY_MB', 800))  # Increased for Vercel
 
         if memory_usage_mb > max_memory_mb * 0.8:  # If using more than 80% of allowed memory
             gc.collect()  # Force garbage collection
@@ -70,9 +70,9 @@ def perform_research():
     worker.daemon = True
     worker.start()
 
-    # Wait for result with timeout
+    # Wait for result with timeout - increased for Vercel environment
     try:
-        result = result_queue.get(timeout=120)  # Increase timeout from 60 to 120 seconds
+        result = result_queue.get(timeout=180)  # Increased timeout for Vercel (60s platform limit)
         if result["success"]:
             return jsonify({'result': result["result"]})
         else:

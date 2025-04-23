@@ -80,7 +80,7 @@ class WebSearchTool:
 class WebScraperTool:
     def __init__(self):
         self.headers = {"User-Agent": "Mozilla/5.0"}
-        self.max_content_length = 1000
+        self.max_content_length = 2500  # Increased for Vercel's higher memory capacity
 
     def scrape(self, url):
         """Scrapes content from a URL with error handling and content length limits"""
