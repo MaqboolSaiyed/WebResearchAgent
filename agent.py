@@ -113,25 +113,28 @@ class WebResearchAgent:
             gc.collect()
 
     def search_web(self, search_terms, is_news=False, query=""):
-        """
-        Searches the web using generated search terms
-        Optimized for low resource environment
-        """
+        """Searches the web using generated search terms"""
         results = []
-        # Get adjusted parameters based on query type
         params = self._adjust_search_parameters(query)
 
-        # Limit search terms using the configurable limit
-        search_terms = search_terms[:self.max_search_terms]
+        # Add null check for search_terms
+        if not search_terms or not isinstance(search_terms, list):
+            search_terms = [query]
 
         for term in search_terms:
-            # Apply rate limiting between searches
             time.sleep(1)
+            # Add null check for search term
+            if not term:
+                continue
 
-            if is_news:
-                term_results = self.news_aggregator.get_news(term, max_results=params.get("max_results_per_term", self.max_results_per_term))
-            else:
-                term_results = self.web_search.search(term, num_results=params.get("max_results_per_term", self.max_results_per_term))
+            # Handle potential None results from search
+            term_results = (self.news_aggregator.get_news(term, max_results=params.get("max_results_per_term", self.max_results_per_term))
+                           if is_news
+                           else self.web_search.search(term, num_results=params.get("max_results_per_term", self.max_results_per_term)) or [])
+
+            # Filter out None entries
+            if term_results:
+                results.extend([r for r in term_results if isinstance(r, dict)])
 
             results.extend(term_results)
 
