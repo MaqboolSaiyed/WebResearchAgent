@@ -79,77 +79,16 @@ class WebSearchTool:
 
 class WebScraperTool:
     def __init__(self):
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-        # Add a configurable content limit
-        self.max_content_length = 5000  # Reduced from previous value
-
-    def scrape(self, url):
-        """
-        Scrapes the content of a webpage and returns it as text
-        """
-        try:
-            response = requests.get(url, headers=self.headers, timeout=10)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            # Clear response to free memory
-            response_text = response.text
-            del response
-            gc.collect()
-
-            # Remove script and style elements
-            for script in soup(["script", "style"]):
-                script.extract()
-
-            # Get page text content
-            text = soup.get_text()
-
-            # Clear soup to free memory
-            del soup
-            gc.collect()
-
-            # Clean up text
-            lines = (line.strip() for line in text.splitlines())
-            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-            text = '\n'.join(chunk for chunk in chunks if chunk)
-
-            # Extract title from original response
-            soup_title = BeautifulSoup(response_text, "html.parser").title
-            title = soup_title.string if soup_title else "No title found"
-
-            # Clear variables to free memory
-            del response_text
-            del soup_title
-            gc.collect()
-
-            # Further reduce content size using the configurable limit
-            content = text[:self.max_content_length]
-
-            # Clear text to free memory
-            del text
-            gc.collect()
-
-            return {
-                "title": title,
-                "content": content,
-                "url": url
-            }
-        except Exception as e:
-            print(f"Error scraping {url}: {e}")
-            return {
-                "title": "Error scraping page",
-                "content": "",
-                "url": url
-            }
+        self.headers = {"User-Agent": "Mozilla/5.0"}
+        self.max_content_length = 1000  # Reduced from 5000
 
 class ContentAnalyzerTool:
     def __init__(self):
+        self.max_analysis_length = 500  # Reduced from 2000
+        self.model = genai.GenerativeModel('gemini-1.5-flash')  # Lighter model
         self.api_key = os.getenv("GEMINI_API_KEY")
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-pro')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         # Add a configurable content limit
         self.max_analysis_length = 2000
         self.last_request_time = 0

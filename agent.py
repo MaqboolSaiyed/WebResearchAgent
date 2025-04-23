@@ -17,14 +17,29 @@ class WebResearchAgent:
         self.web_scraper = WebScraperTool()
         self.content_analyzer = ContentAnalyzerTool()
         self.news_aggregator = NewsAggregatorTool()
-        self.model = genai.GenerativeModel('gemini-1.5-pro')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')  # Lighter model
 
-        # Updated limits for better handling of complex topics
-        self.max_search_terms = 2
+        # Tighter resource constraints
+        self.max_search_terms = 1
         self.max_results_per_term = 1
         self.max_total_results = 1
-        self.max_extracted_sources = 2
-        self.max_synthesis_content_length = 150
+        self.max_extracted_sources = 1
+        self.max_synthesis_content_length = 100  # Reduced from 100
+
+        # More aggressive rate limiting
+        self.last_api_call = 0
+        self.min_api_interval = 5  # Increased from 3
+
+        # Memory optimization
+        self.last_gc = time.time()
+        self.gc_interval = 30  # Force GC every 30 seconds
+
+        # Updated limits for better handling of complex topics
+        self.max_search_terms = 1
+        self.max_results_per_term = 1
+        self.max_total_results = 1
+        self.max_extracted_sources = 1
+        self.max_synthesis_content_length = 100
 
         # Increase rate limiting to prevent CPU spikes
         self.last_api_call = 0
