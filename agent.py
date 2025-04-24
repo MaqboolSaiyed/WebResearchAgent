@@ -349,7 +349,7 @@ class WebResearchAgent:
                             })
                         # Clear variables to free memory
                         del scraped_data
-                        del analysis
+                        # Don't delete analysis here as it might be needed later
                         gc.collect()
                 # Sort by relevance score
                 extracted_data.sort(key=lambda x: x["relevance_score"], reverse=True)
@@ -367,7 +367,7 @@ class WebResearchAgent:
                 report = self.synthesize_information(extracted_data, query)
 
                 # Clear variables to free memory
-                del analysis
+                # Don't delete analysis here as it might be needed later
                 del extracted_data
                 gc.collect()
 
