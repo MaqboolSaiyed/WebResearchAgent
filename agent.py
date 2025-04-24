@@ -50,11 +50,22 @@ class WebResearchAgent:
             # Apply rate limiting
             self._rate_limit()
 
+            # Log the original query for debugging
+            print(f"Original query: '{query}'")
+
+            # Clean the query to handle special characters
+            cleaned_query = query.strip()
+
+            # Check if this is a sports-related query
+            is_sports_query = any(term in cleaned_query.lower() for term in
+                                 ["score", "match", "game", "won", "win", "ipl", "cricket", "football", "soccer", "nba", "nfl"])
+
             # Improved prompt to handle both complex and simple queries
-            prompt = f"""Analyze this query: "{query}"
+            prompt = f"""Analyze this query: "{cleaned_query}"
             Return JSON with: main_topic, key_aspects, content_type, search_terms.
             For complex topics (like quantum computing), break down into specific subtopics.
             For very short queries (like "advancement of AI"), expand with related concepts.
+            For sports-related queries (like "who won ipl last night"), include specific team names and tournament details.
             Be very concise. Limit search_terms to 1-2 terms maximum.
             """
 
@@ -277,6 +288,10 @@ class WebResearchAgent:
             analysis = self.analyze_query(query)
             print(f"Query analysis: {analysis}")
 
+            # Check if this is a sports-related query
+            is_sports_query = any(term in query.lower() for term in
+                                ["score", "match", "game", "won", "win", "ipl", "cricket", "football", "soccer", "nba", "nfl"])
+
             # Step 2: Search for general information
             # Check if search_terms exists and is a list
             if "search_terms" not in analysis or not analysis["search_terms"]:
@@ -286,13 +301,62 @@ class WebResearchAgent:
 
             # Process search terms
             search_terms = analysis["search_terms"][:self.max_search_terms]
-            search_results = self.search_web(search_terms)
+
+            # For sports queries, also search news sources
+            if is_sports_query:
+                print("Detected sports query, searching news sources...")
+                news_results = self.search_web(search_terms, is_news=True, query=query)
+                search_results = self.search_web(search_terms, is_news=False, query=query)
+                # Combine results, prioritizing news
+                combined_results = news_results + search_results
+                # Remove duplicates while preserving order
+                seen_urls = set()
+                unique_results = []
+                for result in combined_results:
+                    if result.get("link") not in seen_urls:
+                        seen_urls.add(result.get("link"))
+                        unique_results.append(result)
+                search_results = unique_results[:self.max_total_results]
+            else:
+                search_results = self.search_web(search_terms, is_news=False, query=query)
 
             # Clear memory after each major step
             gc.collect()
 
             # Step 3: Extract and analyze content
-            extracted_data = self.extract_content(search_results, query)
+            # For sports queries, lower the relevance threshold in extract_content
+            if is_sports_query:
+                # Store original threshold
+                original_threshold = 5
+                # Temporarily modify the extract_content method to use a lower threshold
+                extracted_data = []
+                for result in search_results[:self.max_total_results]:
+                    # Apply rate limiting between scraping operations
+                    time.sleep(1)
+                    url = result["link"]
+                    scraped_data = self.web_scraper.scrape(url)
+                    if scraped_data["content"]:
+                        # Apply rate limiting before analysis
+                        time.sleep(1)
+                        analysis = self.content_analyzer.analyze(scraped_data["content"], query)
+                        # Lower threshold for sports queries
+                        if analysis.get("relevance_score", 0) >= 3:  # Lower threshold
+                            extracted_data.append({
+                                "title": scraped_data["title"],
+                                "url": url,
+                                "content": analysis.get("relevant_content", ""),
+                                "relevance_score": analysis.get("relevance_score", 0)
+                            })
+                        # Clear variables to free memory
+                        del scraped_data
+                        del analysis
+                        gc.collect()
+                # Sort by relevance score
+                extracted_data.sort(key=lambda x: x["relevance_score"], reverse=True)
+                # Limit to configurable top most relevant results
+                extracted_data = extracted_data[:self.max_extracted_sources]
+            else:
+                extracted_data = self.extract_content(search_results, query)
 
             # Clear memory after each major step
             del search_results

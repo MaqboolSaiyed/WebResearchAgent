@@ -32,10 +32,17 @@ class WebSearchTool:
 
             self.last_request_time = time.time()
 
+            # Clean and sanitize the query to handle special characters
+            # This ensures question marks, exclamation marks, etc. are properly handled
+            sanitized_query = query.strip()
+
+            # Log the query for debugging
+            print(f"Searching for: '{sanitized_query}'")
+
             # Improve search parameters for complex or simple queries
             params = {
                 "engine": "google",
-                "q": query,
+                "q": sanitized_query,
                 "api_key": self.api_key,
                 "num": num_results,
                 "gl": "us",  # Search in US
@@ -133,6 +140,19 @@ class ContentAnalyzerTool:
 
             self.last_request_time = time.time()
 
+            # Check if this is a sports-related query
+            is_sports_query = any(term in query.lower() for term in
+                                ["score", "match", "game", "won", "win", "ipl", "cricket", "football", "soccer", "nba", "nfl"])
+
+            # Log the query type for debugging
+            if is_sports_query:
+                print(f"Analyzing content for sports query: '{query}'")
+            else:
+                print(f"Analyzing content for query: '{query}'")
+
+            # Clean the query to handle special characters
+            cleaned_query = query.strip()
+
             # Implement chunking for very long content
             if len(text) > self.max_analysis_length:
                 chunks = [text[i:i+self.max_analysis_length]
@@ -143,16 +163,33 @@ class ContentAnalyzerTool:
                 relevance_scores = []
 
                 for chunk in chunks:
-                    # Process each chunk
-                    prompt = f"""Analyze the following text for information relevant to this query: '{query}'.
-                    Return a JSON object with three fields:
-                    1. 'relevance_score' (0-10 scale)
-                    2. 'relevant_content' (extracted relevant information)
-                    3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
+                    # Process each chunk with appropriate prompt based on query type
+                    if is_sports_query:
+                        prompt = f"""Analyze the following text for information relevant to this sports query: '{cleaned_query}'.
+                        This is a SPORTS-RELATED query, so prioritize:
+                        - Recent match results, scores, and outcomes
+                        - Team or player performance information
+                        - Latest sports news and updates
+                        - Time-sensitive information (like "last night's game")
 
-                    Keep the relevant_content concise, maximum 800 words.
+                        Return a JSON object with three fields:
+                        1. 'relevance_score' (0-10 scale, score 7+ if it contains direct match results)
+                        2. 'relevant_content' (extracted relevant information)
+                        3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
 
-                    Text to analyze: {chunk}"""
+                        Keep the relevant_content concise, maximum 800 words.
+
+                        Text to analyze: {chunk}"""
+                    else:
+                        prompt = f"""Analyze the following text for information relevant to this query: '{cleaned_query}'.
+                        Return a JSON object with three fields:
+                        1. 'relevance_score' (0-10 scale)
+                        2. 'relevant_content' (extracted relevant information)
+                        3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
+
+                        Keep the relevant_content concise, maximum 800 words.
+
+                        Text to analyze: {chunk}"""
 
                     response = self.model.generate_content(prompt)
 
@@ -232,15 +269,33 @@ class ContentAnalyzerTool:
                 }
 
             # For content that doesn't need chunking, process normally
-            prompt = f"""Analyze the following text for information relevant to this query: '{query}'.
-            Return a JSON object with three fields:
-            1. 'relevance_score' (0-10 scale)
-            2. 'relevant_content' (extracted relevant information)
-            3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
+            # Use different prompts for sports queries vs. regular queries
+            if is_sports_query:
+                prompt = f"""Analyze the following text for information relevant to this sports query: '{cleaned_query}'.
+                This is a SPORTS-RELATED query, so prioritize:
+                - Recent match results, scores, and outcomes
+                - Team or player performance information
+                - Latest sports news and updates
+                - Time-sensitive information (like "last night's game")
 
-            Keep the relevant_content concise, maximum 800 words.
+                Return a JSON object with three fields:
+                1. 'relevance_score' (0-10 scale, score 7+ if it contains direct match results)
+                2. 'relevant_content' (extracted relevant information)
+                3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
 
-            Text to analyze: {text}"""
+                Keep the relevant_content concise, maximum 800 words.
+
+                Text to analyze: {text}"""
+            else:
+                prompt = f"""Analyze the following text for information relevant to this query: '{cleaned_query}'.
+                Return a JSON object with three fields:
+                1. 'relevance_score' (0-10 scale)
+                2. 'relevant_content' (extracted relevant information)
+                3. 'source_quality' (0-10 scale, indicating how authoritative the source seems)
+
+                Keep the relevant_content concise, maximum 800 words.
+
+                Text to analyze: {text}"""
 
             response = self.model.generate_content(prompt)
             response_text = response.text
@@ -306,9 +361,15 @@ class NewsAggregatorTool:
         Gets recent news articles on a specific topic
         """
         try:
+            # Clean and sanitize the topic to handle special characters
+            sanitized_topic = topic.strip()
+
+            # Log the topic for debugging
+            print(f"Searching news for: '{sanitized_topic}'")
+
             params = {
                 "engine": "google",
-                "q": topic,
+                "q": sanitized_topic,
                 "tbm": "nws",  # News search
                 "api_key": self.api_key,
                 "num": max_results
